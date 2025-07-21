@@ -470,9 +470,9 @@
   document.getElementById("order-form").oninput = updateMessage;
 
   // GOOGLE SCRIPT WEB APP URL for saving to Google Sheets
+ <script>
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9NEKxlLwMx-5cOBYlWlM4blXvlHTixCpcbsw_sFNZSmnMmKbMwrzGLOOZBPNZG6dN/exec";
 
-  // Submit to both WhatsApp and Google Sheets
   function submitOrderDual(event) {
     event.preventDefault();
 
@@ -483,38 +483,43 @@
     const responseBox = document.getElementById('submit-response');
 
     if (!name || !product || !qty) {
-      msgPreview.innerText = "Please fill in all required fields.";
+      msgPreview.innerText = "❌ Please fill in all required fields.";
       return false;
     }
 
-    // Prepare data for Google Sheets
-    const data = { 
-      name: name,
-      product: product,
-      quantity: qty
-    };
+    // ✅ Prepare form-encoded data (avoids CORS preflight)
+    const formData = new URLSearchParams();
+    formData.append("name", name);
+    formData.append("product", product);
+    formData.append("quantity", qty);
+    formData.append("status", "Pending");       // Optional default field
+    formData.append("contact", "");
+    formData.append("address", "");
+    formData.append("notes", "");
 
+    // ✅ Fetch using no custom headers (so CORS preflight is skipped)
     fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json' }
+      body: formData
     })
-    .then(res => res.json())
+    .then(res => res.text())
     .then(response => {
-      if (response.result === 'success') {
-        responseBox.textContent = '✅ Order submitted to Google Sheets!';
+      if (response.toLowerCase().includes('success')) {
+        responseBox.textContent = '✅ Order saved to Google Sheets!';
       } else {
-        responseBox.textContent = '❌ Submission to Google Sheets failed.';
+        responseBox.textContent = '⚠️ Submission failed. Try again.';
       }
-    }).catch(() => {
+    })
+    .catch(() => {
       responseBox.textContent = '⚠️ Network error. Please try again.';
     });
 
-    // Prepare WhatsApp message and redirect
+    // ✅ Send to WhatsApp
     const msg = `Namaste! My name is ${name}. I'd like to order ${qty} of ${product}. Looking forward to your reply!`;
     const waUrl = `https://wa.me/919738560719?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, "_blank");
 
+    // ✅ Reset form & preview
     document.getElementById('order-form').reset();
     msgPreview.innerText = "Namaste! Please fill in your name, product, and quantity to preview your order.";
     return false;
