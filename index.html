@@ -28,13 +28,21 @@
 </nav>
 
 <section id="about">
-  <h2>About Us</h2>
-  <p><strong>Founded by Aishwarya</strong>, Aishaura Microgreens is rooted in a passion for nutrition, sustainability, and supporting our vibrant local community.</p>
-  <ul>
-    <li><strong>Family-run urban farm</strong> with a personal touch</li>
-    <li><strong>Eco-conscious:</strong> minimal waste, local delivery, & responsible practices</li>
-    <li><strong>Transparent food traceability</strong> — from seed to plate</li>
-  </ul>
+  <div class="about-container">
+    <div class="about-content">
+      <h2>About Us</h2>
+      <p><strong>Founded by Aishwarya</strong>, Aishaura Microgreens is rooted in a passion for nutrition, sustainability, and supporting our vibrant local community.</p>
+      <ul>
+        <li><strong>Family-run urban farm</strong> with a personal touch</li>
+        <li><strong>Eco-conscious:</strong> minimal waste, local delivery, & responsible practices</li>
+        <li><strong>Transparent food traceability</strong> — from seed to plate</li>
+      </ul>
+    </div>
+    <div class="about-image">
+      <!-- You can add your image here -->
+      <img src="images/about-image.jpg" alt="Aishaura Microgreens Farm">
+    </div>
+  </div>
 </section>
 
 <section id="benefits">
@@ -81,7 +89,7 @@
       </ul>
     </div>
     <div class="card" role="listitem">
-      <img src="images/mustard.jpg" alt="Mustard Microgreens" />
+      <img src="images/Mustard.png" alt="Mustard Microgreens" />
       <div class="gallery-title">Mustard Microgreens</div>
       <ul class="benefits-list">
         <li>Fiery & bold, rich in Vitamin K and flavor</li>
@@ -89,11 +97,11 @@
       </ul>
     </div>
     <div class="card" role="listitem">
-      <img src="images/pink-radish.jpg" alt="Pink Radish Microgreens" />
-      <div class="gallery-title">Pink Radish Microgreens</div>
+      <img src="images/Wheat-Grass.jpg" alt="Wheat Grass" />
+      <div class="gallery-title">Wheat Grass</div>
       <ul class="benefits-list">
-        <li>Zesty, immune-boosting, adds brightness</li>
-        <li>Vibrant color, rich in antioxidants</li>
+        <li>Nutrient-dense superfood, rich in chlorophyll</li>
+        <li>Supports detoxification and blood health</li>
       </ul>
     </div>
     <div class="card" role="listitem">
@@ -127,20 +135,19 @@
       <div class="gallery-title">Radish Microgreen Salad</div>
     </div>
   </div>
-  <!-- (details blocks as in your initial code) -->
 </section>
 
 <section id="order">
   <h2>Order Your Microgreens</h2>
   <form class="form" id="order-form" autocomplete="off">
-
     <label for="cname">Your Name *</label>
     <input id="cname" name="name" type="text" required placeholder="Enter your name">
 
     <label for="ccontact">Contact Info *</label>
     <input id="ccontact" name="contact" type="text" required placeholder="Phone">
-<label for="cemail">Email Address *</label>
-<input id="cemail" name="email" type="email" required placeholder="Your email address">
+    
+    <label for="cemail">Email Address *</label>
+    <input id="cemail" name="email" type="email" required placeholder="Your email address">
 
     <label for="cprod">Select Product *</label>
     <select id="cprod" name="product" required>
@@ -182,6 +189,22 @@
   <p><b>Instagram:</b> @aishaura.microgreens</p>
   <p><b>Delivery:</b> Every Friday • Book by Thursday night</p>
 </section>
+
+<!-- Modal Dialog -->
+<div id="product-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <div class="modal-body">
+      <img id="modal-image" src="" alt="">
+      <h2 id="modal-title"></h2>
+      <div id="modal-description"></div>
+      <h3>Health Benefits</h3>
+      <ul id="modal-benefits"></ul>
+      <h3>How to Use</h3>
+      <ul id="modal-usage"></ul>
+    </div>
+  </div>
+</div>
 
 <footer>
   &copy; 2025 Aishaura Microgreens • Grown With Love • Packed With Nutrition
