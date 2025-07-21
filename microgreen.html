@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aishaura Microgreens</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #36896c;
+      --light: #f1fff6;
+      --accent: #25D366;
+      --text-color: #345634;
+    }
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: var(--light);
+      color: var(--text-color);
+    }
+    header {
+      background: url('images/background1.jpg') no-repeat center center;
+      background-size: cover;
+      padding: 2rem 1rem 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    header img.logo {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+      display: none;
+    }
+    header h1 {
+      font-family: 'Amatic SC', cursive;
+      font-size: 3rem;
+      letter-spacing: 2px;
+      color: white;
+      margin: 0;
+    }
+    header p {
+      color: white;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    nav {
+      background: #266d4a;
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+    nav a:hover {
+      color: #fff378;
+    }
+    section {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    h2 {
+      font-family: 'Pacifico', cursive;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--green);
+    }
+    ul {
+      padding-left: 1.2rem;
+    }
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+    }
+    .card {
+      background: #f9fff8;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      width: 240px;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    .card:hover {
+      transform: scale(1.03);
+    }
+    .card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+    }
+    .card .gallery-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 0.4rem 0;
+      color: var(--green);
+      text-align: center;
+    }
+    .benefits-list {
+      padding: 0 1rem 1rem;
+      font-size: 0.95rem;
+      color: #456654;
+      text-align: left;
+    }
+    .order-form {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .order-form label {
+      font-weight: bold;
+      display: block;
+      margin-top: 1rem;
+    }
+    .order-form input,
+    .order-form select,
+    .order-form textarea {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 0.3rem;
+      border: 1px solid #a3dabc;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .order-form button {
+      margin-top: 1.2rem;
+      padding: 0.8rem;
+      background: #25D366;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .order-form button:hover {
+      background: #1bc45a;
+    }
+    .response {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #266d4a;
+    }
+    .weights {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+    .weights button {
+      flex: 1;
+      padding: 0.5rem;
+      background: #d8f6dc;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .weights button:hover {
+      background: #b7f8c2;
+    }
+    .preview {
+      margin-top: 1rem;
+      background: #f6fffa;
+      border: 1px solid #cce3cd;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    #book-now-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #25D366;
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      padding: 0.75rem 1.5rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      z-index: 1050;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #book-now-btn:hover {
+      background: #19b154;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1100;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.45);
+      justify-content: center;
+      align-items: center;
+      overflow-y: auto;
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 36px rgba(0,0,0,0.18);
+      max-width: 96vw;
+      width: 100%;
+      min-width: 0;
+      margin: 1rem;
+      padding: 2rem 1.5rem;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .close {
+      position: absolute;
+      top: 12px;
+      right: 18px;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #345634;
+      font-weight: bold;
+    }
+    @media (max-width: 900px) {
+      .gallery {
+        flex-direction: column;
+        align-items: center;
+      }
+      .modal-content {
+        padding: 1rem 0.5rem;
+        width: 98vw;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header aria-label="Site logo and brand title">
+  <img id="logo-img" class="logo" alt="Aishaura Microgreens Logo" />
+  <h1>Aishaura Microgreens</h1>
+  <p>Fresh, Sustainable Nutrition for Every Home</p>
+</header>
+
+<nav aria-label="Main site navigation">
+  <a href="#about">About</a>
+  <a href="#benefits">Why Microgreens</a>
+  <a href="#why-us">Why Us</a>
+  <a href="#products">Products</a>
+  <a href="#gallery">Gallery</a>
+  <a href="#recipes">Recipes</a>
+  <a href="#order">Order</a>
+  <a href="#contact">Contact</a>
+</nav>
+
+<section id="about">
+  <h2>About Us</h2>
+  <p><strong>Founded by Aishwarya</strong>, Aishaura Microgreens is rooted in a passion for nutrition, sustainability, and supporting our vibrant local community.</p>
+  <ul>
+    <li><strong>Family-run urban farm</strong> with a personal touch</li>
+    <li><strong>Eco-conscious:</strong> minimal waste, local delivery, & responsible practices</li>
+    <li><strong>Transparent food traceability</strong> — from seed to plate</li>
+  </ul>
+</section>
+
+<section id="benefits">
+  <h2>Why Choose Microgreens?</h2>
+  <ul>
+    <li><strong>Up to 40x more nutrients</strong> than mature greens</li>
+    <li><strong>Harvest-ready in 7–10 days</strong> — ultra fresh produce always</li>
+    <li><strong>Eco-friendly farming</strong>: 90% less water, no chemical pesticides</li>
+    <li><strong>Flavor variety</strong>: from spicy to sweet to nutty</li>
+    <li><strong>Natural disease fighters</strong>: antioxidants, detox agents</li>
+    <li><strong>Perfect for every dish</strong>: salads, smoothies, sandwiches, curries & pizza!</li>
+    <li><strong>Boost immunity</strong>, aid digestion, enhance skin & vision</li>
+    <li><strong>Support sustainable agriculture</strong> and reduce your carbon footprint</li>
+  </ul>
+</section>
+
+<section id="why-us">
+  <h2>Why Choose Us?</h2>
+  <ul>
+    <li>Homegrown & pesticide-free using sustainable practices</li>
+    <li>Harvest-to-door freshness: orders cut the same day of delivery</li>
+    <li>Eco packaging and farm-to-fork traceability</li>
+    <li>Hands-on care, every tray grown with love</li>
+  </ul>
+</section>
+
+<section id="products">
+  <h2>Our Products</h2>
+  <div class="gallery">
+    <div class="card" role="listitem" aria-label="Sunflower Microgreens card">
+      <img src="images/sunflower.jpg" alt="Sunflower Microgreens" />
+      <div class="gallery-title">Sunflower Microgreens</div>
+      <ul class="benefits-list">
+        <li>High in protein, crunchy & energy-boosting</li>
+        <li>Rich in vitamin E and B6, magnesium, zinc</li>
+      </ul>
+    </div>
+    <div class="card" role="listitem" aria-label="Radish Microgreens card">
+      <img src="images/radish.jpg" alt="Radish Microgreens" />
+      <div class="gallery-title">Radish Microgreens</div>
+      <ul class="benefits-list">
+        <li>Spicy and vitamin-rich, great for digestion</li>
+        <li>High in vitamin C, supports metabolism</li>
+      </ul>
+    </div>
+    <div class="card" role="listitem" aria-label="Mustard Microgreens card">
+      <img src="images/mustard.jpg" alt="Mustard Microgreens" />
+      <div class="gallery-title">Mustard Microgreens</div>
+      <ul class="benefits-list">
+        <li>Fiery & bold, rich in Vitamin K and flavor</li>
+        <li>Supports healthy metabolism and bones</li>
+      </ul>
+    </div>
+    <div class="card" role="listitem" aria-label="Pink Radish Microgreens card">
+      <img src="images/pink-radish.jpg" alt="Pink Radish Microgreens" />
+      <div class="gallery-title">Pink Radish Microgreens</div>
+      <ul class="benefits-list">
+        <li>Zesty, immune-boosting, adds brightness</li>
+        <li>Vibrant color, rich in antioxidants</li>
+      </ul>
+    </div>
+    <div class="card" role="listitem" aria-label="Mixed Microgreens card">
+      <img src="images/mixed.jpg" alt="Mixed Microgreens" />
+      <div class="gallery-title">Mixed Microgreens</div>
+      <ul class="benefits-list">
+        <li>Chef's mix: diverse taste & full nourishment</li>
+        <li>All varieties for complete nutrition</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="recipes">
+  <h2>Recipe Ideas</h2>
+  <div class="gallery recipes-flex">
+    <div class="card recipe-art">
+      <img src="images/avocado-toast.jpg" alt="Microgreens Avocado Toast"/>
+      <div class="gallery-title">Microgreens Avocado Toast</div>
+    </div>
+    <div class="card recipe-art">
+      <img src="images/sunflower-smoothie.jpg" alt="Sunflower Green Smoothie"/>
+      <div class="gallery-title">Sunflower Green Smoothie</div>
+    </div>
+    <div class="card recipe-art">
+      <img src="images/buddha-bowl.jpg" alt="Microgreen Buddha Bowl"/>
+      <div class="gallery-title">Microgreen Buddha Bowl</div>
+    </div>
+    <div class="card recipe-art">
+      <img src="images/radish-salad.jpg" alt="Radish Microgreen Salad"/>
+      <div class="gallery-title">Radish Microgreen Salad</div>
+    </div>
+  </div>
+  <details><summary><strong>Microgreens Avocado Toast [+]</strong></summary>
+    <p>Toast bread, mash avocado with lemon and salt, spread, then top with microgreens and chili flakes.</p>
+  </details>
+  <details><summary><strong>Sunflower Green Smoothie [+]</strong></summary>
+    <p>Blend sunflower microgreens with banana, mango, and coconut water for an energizing breakfast.</p>
+  </details>
+  <details><summary><strong>Microgreen Buddha Bowl [+]</strong></summary>
+    <p>Base of quinoa/rice, layered with veggies, beans & handfuls of microgreens. Top with tahini-lemon dressing.</p>
+  </details>
+  <details><summary><strong>Radish Microgreen Salad [+]</strong></summary>
+    <p>Combine radish microgreens with cucumbers, cherry tomatoes, vinaigrette & sunflower seeds.</p>
+  </details>
+</section>
+
+<!-- Floating Book Now Button & Responsive Modal Dialog -->
+<button id="book-now-btn" aria-label="Book Now">Book Now</button>
+<div id="order-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="close-modal" title="Close">&times;</span>
+    <h2>Order Your Microgreens</h2>
+    <form id="order-form" class="order-form" onsubmit="submitToSheet(event)">
+      <label for="name">Your Name</label>
+      <input id="name" type="text" required placeholder="e.g. Aishwarya">
+      <label for="product">Select Microgreen</label>
+      <select id="product" required>
+        <option value="" disabled selected>Choose One</option>
+        <option value="Sunflower Microgreens">Sunflower</option>
+        <option value="Radish Microgreens">Radish</option>
+        <option value="Mustard Microgreens">Mustard</option>
+        <option value="Pink Radish Microgreens">Pink Radish</option>
+        <option value="Mixed Microgreens">Mixed</option>
+      </select>
+      <label for="quantity">Quantity</label>
+      <div class="weights">
+        <button type="button" onclick="setWeight(50)">50g</button>
+        <button type="button" onclick="setWeight(100)">100g</button>
+        <button type="button" onclick="setWeight(150)">150g</button>
+        <button type="button" onclick="setWeight(200)">200g</button>
+      </div>
+      <input id="quantity" type="text" required placeholder="e.g. 100g">
+      <button type="submit">Place Order</button>
+      <div class="response" id="response-message"></div>
+    </form>
+  </div>
+</div>
+
+<section id="order">
+  <h2>Book Your Microgreens via WhatsApp</h2>
+  <form class="form" id="old-order-form" oninput="updateMessage(); return false;">
+    <label for="cname">Your Name</label>
+    <input id="cname" type="text" required placeholder="Enter your name"/>
+    <label for="cprod">Select Product</label>
+    <select id="cprod" required>
+      <option value="" disabled selected>Select microgreen</option>
+      <option value="Sunflower Microgreens">Sunflower</option>
+      <option value="Radish Microgreens">Radish</option>
+      <option value="Mustard Microgreens">Mustard</option>
+      <option value="Pink Radish Microgreens">Pink Radish</option>
+      <option value="Mixed Microgreens">Mixed</option>
+    </select>
+    <label for="cqty">Quantity</label>
+    <div class="weights">
+      <button type="button" onclick="setWeightOld(50)">50g</button>
+      <button type="button" onclick="setWeightOld(100)">100g</button>
+      <button type="button" onclick="setWeightOld(150)">150g</button>
+      <button type="button" onclick="setWeightOld(200)">200g</button>
+    </div>
+    <input id="cqty" type="text" required placeholder="e.g., 100g"/>
+    <button type="button" onclick="sendWhatsApp()">Send via WhatsApp</button>
+    <div id="msg-preview" class="preview">Namaste! Please fill in your name, product, and quantity to preview your order.</div>
+  </form>
+</section>
+
+<section id="contact">
+  <h2>Contact Us</h2>
+  <p><b>Email:</b> aishaura.greens@gmail.com</p>
+  <p><b>WhatsApp:</b> 9738560719</p>
+  <p><b>Instagram:</b> @aishaura.microgreens</p>
+  <p><b>Delivery:</b> Every Friday • Book by Thursday night</p>
+</section>
+
+<footer>
+  &copy; 2025 Aishaura Microgreens • Grown With Love • Packed With Nutrition
+  <div class="custom-note">
+    Want more? Let us know if you'd like language translations, more animation, other payment modes, or a business dashboard!
+  </div>
+</footer>
+
+<script>
+  // Logo extension detection logic
+  const logoExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+  const logoBasePath = 'images/generated-image.';
+  const logoImg = document.getElementById('logo-img');
+  (function tryLogo(i = 0) {
+    if (i >= logoExtensions.length) {
+      logoImg.alt = "Logo not found";
+      logoImg.style.display = "none";
+      return;
+    }
+    const ext = logoExtensions[i];
+    const testImg = new Image();
+    testImg.onload = function () {
+      logoImg.src = logoBasePath + ext;
+      logoImg.style.display = "inline";
+    };
+    testImg.onerror = function () {
+      tryLogo(i + 1);
+    };
+    testImg.src = logoBasePath + ext;
+  })();
+
+  // Modal dialog logic
+  document.getElementById('book-now-btn').onclick = function() {
+    document.getElementById('order-modal').style.display = 'flex';
+  };
+  document.getElementById('close-modal').onclick = function() {
+    document.getElementById('order-modal').style.display = 'none';
+  };
+  window.onclick = function(event) {
+    const modal = document.getElementById('order-modal');
+    if (event.target === modal) modal.style.display = "none";
+  };
+
+  // Weight quick-fill for modal
+  function setWeight(gm) {
+    document.getElementById('quantity').value = gm + 'g';
+  }
+  // Weight quick-fill for WhatsApp form (legacy)
+  function setWeightOld(gm) {
+    document.getElementById('cqty').value = gm + 'g';
+    updateMessage();
+  }
+
+  // Google Apps Script URL (update this to your actual script URL)
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9NEKxlLwMx-5cOBYlWlM4blXvlHTixCpcbsw_sFNZSmnMmKbMwrzGLOOZBPNZG6dN/exec";
+
+  function submitToSheet(event) {
+    event.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const product = document.getElementById('product').value;
+    const quantity = document.getElementById('quantity').value.trim();
+
+    const msg = document.getElementById('response-message');
+    msg.textContent = "Submitting...";
+
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ name, product, quantity }),
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then((res) => res.json())
+    .then((response) => {
+      if (response.result === 'success') {
+        msg.textContent = '✅ Order submitted successfully!';
+        document.getElementById('order-form').reset();
+      } else {
+        msg.textContent = '❌ Something went wrong.';
+      }
+    })
+    .catch((err) => {
+      msg.textContent = '⚠️ Network error. Please try again.';
+    });
+  }
+
+  // WhatsApp order form logic
+  function updateMessage() {
+    const name = document.getElementById('cname').value.trim();
+    const product = document.getElementById('cprod').value;
+    const qty = document.getElementById('cqty').value.trim();
+    let msg = "Namaste! ";
+    if (name) msg += `My name is ${name}. `;
+    if (product && qty) msg += `I'd like to order ${qty} of ${product}.`;
+    document.getElementById('msg-preview').innerText = msg ? msg + " Looking forward to your reply!" : "Namaste! Please fill in your name, product, and quantity.";
+  }
+  function sendWhatsApp() {
+    const name = document.getElementById('cname').value.trim();
+    const product = document.getElementById('cprod').value;
+    const qty = document.getElementById('cqty').value.trim();
+    if (!name || !product || !qty) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+    const msg = `Namaste! My name is ${name}. I'd like to order ${qty} of ${product}. Looking forward to your reply!`;
+    const url = `https://wa.me/919738560719?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  }
+</script>
+</body>
+</html>
