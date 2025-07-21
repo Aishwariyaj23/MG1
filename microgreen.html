@@ -84,9 +84,7 @@
       margin-bottom: 1rem;
       color: var(--green);
     }
-    ul {
-      padding-left: 1.2rem;
-    }
+    ul { padding-left: 1.2rem; }
     .gallery {
       display: flex;
       flex-wrap: wrap;
@@ -122,47 +120,24 @@
       color: #456654;
       text-align: left;
     }
-    .order-form {
-      max-width: 500px;
-      margin: auto;
-      background: white;
+    .form {
+      margin-top: 1rem;
+      background: #ecfff2;
       padding: 1.5rem;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .order-form label {
-      font-weight: bold;
-      display: block;
+    .form label {
+      font-weight: 600;
       margin-top: 1rem;
+      display: block;
     }
-    .order-form input,
-    .order-form select,
-    .order-form textarea {
+    .form input, .form select {
       width: 100%;
       padding: 0.6rem;
       margin-top: 0.3rem;
       border: 1px solid #a3dabc;
       border-radius: 6px;
       font-family: inherit;
-    }
-    .order-form button {
-      margin-top: 1.2rem;
-      padding: 0.8rem;
-      background: #25D366;
-      border: none;
-      color: white;
-      font-size: 1rem;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .order-form button:hover {
-      background: #1bc45a;
-    }
-    .response {
-      margin-top: 1rem;
-      font-weight: bold;
-      color: #266d4a;
     }
     .weights {
       display: flex;
@@ -181,12 +156,29 @@
     .weights button:hover {
       background: #b7f8c2;
     }
+    .form button {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: var(--accent);
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      width: 100%;
+      cursor: pointer;
+    }
     .preview {
       margin-top: 1rem;
       background: #f6fffa;
       border: 1px solid #cce3cd;
       padding: 1rem;
       border-radius: 8px;
+    }
+    .response {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #266d4a;
     }
     #book-now-btn {
       position: fixed;
@@ -223,7 +215,6 @@
       box-shadow: 0 8px 36px rgba(0,0,0,0.18);
       max-width: 96vw;
       width: 100%;
-      min-width: 0;
       margin: 1rem;
       padding: 2rem 1.5rem;
       position: relative;
@@ -238,7 +229,7 @@
       color: #345634;
       font-weight: bold;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 768px) {
       .gallery {
         flex-direction: column;
         align-items: center;
@@ -306,45 +297,67 @@
 
 <section id="products">
   <h2>Our Products</h2>
-  <div class="gallery">
-    <div class="card" role="listitem" aria-label="Sunflower Microgreens card">
-      <img src="images/sunflower.jpg" alt="Sunflower Microgreens" />
+  <table aria-label="Microgreens Product Highlights">
+    <tr><th scope="col">Microgreen</th><th scope="col">Highlights</th></tr>
+    <tr><td>Sunflower</td><td>High in protein, crunchy & energy-boosting</td></tr>
+    <tr><td>Radish</td><td>Spicy, vitamin-rich, great for digestion</td></tr>
+    <tr><td>Mustard</td><td>Fiery & bold, rich in Vitamin K and flavor</td></tr>
+    <tr><td>Pink Radish</td><td>Zesty, immune-boosting, adds brightness</td></tr>
+    <tr><td>Mixed Microgreens</td><td>Chef's mix: diverse taste & full nourishment</td></tr>
+  </table>
+</section>
+
+<section id="gallery">
+  <h2>Gallery</h2>
+  <div class="gallery" role="list">
+    <div class="card" role="listitem">
+      <img src="https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=480&q=80" alt="Sunflower Microgreens" />
       <div class="gallery-title">Sunflower Microgreens</div>
       <ul class="benefits-list">
-        <li>High in protein, crunchy & energy-boosting</li>
-        <li>Rich in vitamin E and B6, magnesium, zinc</li>
+        <li>High in protein, vitamin E and B6</li>
+        <li>Aids muscle repair, immune strength</li>
+        <li>Rich in zinc and magnesium</li>
+        <li>Boosts energy and healthy skin</li>
       </ul>
     </div>
-    <div class="card" role="listitem" aria-label="Radish Microgreens card">
-      <img src="images/radish.jpg" alt="Radish Microgreens" />
+    <div class="card" role="listitem">
+      <img src="https://images.unsplash.com/photo-1429554429301-01bcd64c6eab?auto=format&fit=crop&w=480&q=80" alt="Radish Microgreens" />
       <div class="gallery-title">Radish Microgreens</div>
       <ul class="benefits-list">
-        <li>Spicy and vitamin-rich, great for digestion</li>
-        <li>High in vitamin C, supports metabolism</li>
+        <li>Spicy fresh taste, high in vitamin C</li>
+        <li>Aids digestion, rich in potassium</li>
+        <li>Powerful antioxidants, phytonutrients</li>
+        <li>Detoxifying and metabolism-boosting</li>
       </ul>
     </div>
-    <div class="card" role="listitem" aria-label="Mustard Microgreens card">
-      <img src="images/mustard.jpg" alt="Mustard Microgreens" />
+    <div class="card" role="listitem">
+      <img src="https://images.unsplash.com/photo-1447078806655-40579c2520d6?auto=format&fit=crop&w=480&q=80" alt="Mustard Microgreens" />
       <div class="gallery-title">Mustard Microgreens</div>
       <ul class="benefits-list">
-        <li>Fiery & bold, rich in Vitamin K and flavor</li>
+        <li>Peppery flavor, rich in vitamin K and carotenoids</li>
         <li>Supports healthy metabolism and bones</li>
+        <li>Detoxifying isothiocyanates</li>
+        <li>Heart-healthy, immune defense</li>
       </ul>
     </div>
-    <div class="card" role="listitem" aria-label="Pink Radish Microgreens card">
-      <img src="images/pink-radish.jpg" alt="Pink Radish Microgreens" />
+    <div class="card" role="listitem">
+      <img src="https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=480&q=80" alt="Pink Radish Microgreens" />
       <div class="gallery-title">Pink Radish Microgreens</div>
       <ul class="benefits-list">
-        <li>Zesty, immune-boosting, adds brightness</li>
-        <li>Vibrant color, rich in antioxidants</li>
+        <li>Vibrant color, vitamin C & minerals</li>
+        <li>Spicy crunch, supports immunity</li>
+        <li>Rich in anthocyanins (plant antioxidants)</li>
+        <li>Anti-inflammatory, aids digestion</li>
       </ul>
     </div>
-    <div class="card" role="listitem" aria-label="Mixed Microgreens card">
-      <img src="images/mixed.jpg" alt="Mixed Microgreens" />
+    <div class="card" role="listitem">
+      <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=480&q=80" alt="Mixed Microgreens" />
       <div class="gallery-title">Mixed Microgreens</div>
       <ul class="benefits-list">
-        <li>Chef's mix: diverse taste & full nourishment</li>
-        <li>All varieties for complete nutrition</li>
+        <li>Best of the week: all flavours & textures</li>
+        <li>Balanced vitamins, minerals, phytochemicals</li>
+        <li>Perfect for all ages and meals</li>
+        <li>Versatile and visually appealing</li>
       </ul>
     </div>
   </div>
@@ -354,24 +367,24 @@
   <h2>Recipe Ideas</h2>
   <div class="gallery recipes-flex">
     <div class="card recipe-art">
-      <img src="images/avocado-toast.jpg" alt="Microgreens Avocado Toast"/>
+      <img src="https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80" alt="Microgreens Avocado Toast"/>
       <div class="gallery-title">Microgreens Avocado Toast</div>
     </div>
     <div class="card recipe-art">
-      <img src="images/sunflower-smoothie.jpg" alt="Sunflower Green Smoothie"/>
+      <img src="https://images.unsplash.com/photo-1523987355523-c7b5b0723c42?auto=format&fit=crop&w=400&q=80" alt="Sunflower Green Smoothie"/>
       <div class="gallery-title">Sunflower Green Smoothie</div>
     </div>
     <div class="card recipe-art">
-      <img src="images/buddha-bowl.jpg" alt="Microgreen Buddha Bowl"/>
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" alt="Microgreen Buddha Bowl"/>
       <div class="gallery-title">Microgreen Buddha Bowl</div>
     </div>
     <div class="card recipe-art">
-      <img src="images/radish-salad.jpg" alt="Radish Microgreen Salad"/>
+      <img src="https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80" alt="Radish Microgreen Salad"/>
       <div class="gallery-title">Radish Microgreen Salad</div>
     </div>
   </div>
   <details><summary><strong>Microgreens Avocado Toast [+]</strong></summary>
-    <p>Toast bread, mash avocado with lemon and salt, spread, then top with microgreens and chili flakes.</p>
+    <p>Toast bread, mash avocado with lemon juice and salt, spread, then top with microgreens and chili flakes.</p>
   </details>
   <details><summary><strong>Sunflower Green Smoothie [+]</strong></summary>
     <p>Blend sunflower microgreens with banana, mango, and coconut water for an energizing breakfast.</p>
@@ -382,45 +395,25 @@
   <details><summary><strong>Radish Microgreen Salad [+]</strong></summary>
     <p>Combine radish microgreens with cucumbers, cherry tomatoes, vinaigrette & sunflower seeds.</p>
   </details>
+  <details><summary><strong>Amaranth Paratha Rolls [+]</strong></summary>
+    <p>Add microgreens to dough, roll into paratha; fill with paneer/veggies and roll. Serve with yogurt dip.</p>
+  </details>
+  <details><summary><strong>Mustard Microgreen Raita [+]</strong></summary>
+    <p>Mix yogurt with cucumber, mustard microgreens, cumin, and salt. Chill before serving.</p>
+  </details>
+  <details><summary><strong>Broccoli Microgreen Stir-Fry [+]</strong></summary>
+    <p>Quick sauté veggies, toss in microgreens at the end with sesame and soy sauce. Serve with rice/noodles.</p>
+  </details>
+  <details><summary><strong>Pea Shoot Asian Noodle Bowl [+]</strong></summary>
+    <p>Stir-fry pea shoots with noodles, garlic, and ginger. Top with sesame oil and spring onions.</p>
+  </details>
 </section>
 
-<!-- Floating Book Now Button & Responsive Modal Dialog -->
-<button id="book-now-btn" aria-label="Book Now">Book Now</button>
-<div id="order-modal" class="modal">
-  <div class="modal-content">
-    <span class="close" id="close-modal" title="Close">&times;</span>
-    <h2>Order Your Microgreens</h2>
-    <form id="order-form" class="order-form" onsubmit="submitToSheet(event)">
-      <label for="name">Your Name</label>
-      <input id="name" type="text" required placeholder="e.g. Aishwarya">
-      <label for="product">Select Microgreen</label>
-      <select id="product" required>
-        <option value="" disabled selected>Choose One</option>
-        <option value="Sunflower Microgreens">Sunflower</option>
-        <option value="Radish Microgreens">Radish</option>
-        <option value="Mustard Microgreens">Mustard</option>
-        <option value="Pink Radish Microgreens">Pink Radish</option>
-        <option value="Mixed Microgreens">Mixed</option>
-      </select>
-      <label for="quantity">Quantity</label>
-      <div class="weights">
-        <button type="button" onclick="setWeight(50)">50g</button>
-        <button type="button" onclick="setWeight(100)">100g</button>
-        <button type="button" onclick="setWeight(150)">150g</button>
-        <button type="button" onclick="setWeight(200)">200g</button>
-      </div>
-      <input id="quantity" type="text" required placeholder="e.g. 100g">
-      <button type="submit">Place Order</button>
-      <div class="response" id="response-message"></div>
-    </form>
-  </div>
-</div>
-
 <section id="order">
-  <h2>Book Your Microgreens via WhatsApp</h2>
-  <form class="form" id="old-order-form" oninput="updateMessage(); return false;">
+  <h2>Order Your Microgreens</h2>
+  <form class="form" id="order-form" onsubmit="return submitOrderDual(event);" autocomplete="off">
     <label for="cname">Your Name</label>
-    <input id="cname" type="text" required placeholder="Enter your name"/>
+    <input id="cname" type="text" required placeholder="Enter your name">
     <label for="cprod">Select Product</label>
     <select id="cprod" required>
       <option value="" disabled selected>Select microgreen</option>
@@ -432,14 +425,15 @@
     </select>
     <label for="cqty">Quantity</label>
     <div class="weights">
-      <button type="button" onclick="setWeightOld(50)">50g</button>
-      <button type="button" onclick="setWeightOld(100)">100g</button>
-      <button type="button" onclick="setWeightOld(150)">150g</button>
-      <button type="button" onclick="setWeightOld(200)">200g</button>
+      <button type="button" onclick="setWeight(50)">50g</button>
+      <button type="button" onclick="setWeight(100)">100g</button>
+      <button type="button" onclick="setWeight(150)">150g</button>
+      <button type="button" onclick="setWeight(200)">200g</button>
     </div>
-    <input id="cqty" type="text" required placeholder="e.g., 100g"/>
-    <button type="button" onclick="sendWhatsApp()">Send via WhatsApp</button>
+    <input id="cqty" type="text" required placeholder="e.g., 100g">
+    <button type="submit" id="order-submit">Send via WhatsApp & Google Sheets</button>
     <div id="msg-preview" class="preview">Namaste! Please fill in your name, product, and quantity to preview your order.</div>
+    <div id="submit-response" class="response"></div>
   </form>
 </section>
 
@@ -459,11 +453,11 @@
 </footer>
 
 <script>
-  // Logo extension detection logic
+  // Dynamic logo auto-detection
   const logoExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
   const logoBasePath = 'images/generated-image.';
   const logoImg = document.getElementById('logo-img');
-  (function tryLogo(i = 0) {
+  (function tryLogo(i=0) {
     if (i >= logoExtensions.length) {
       logoImg.alt = "Logo not found";
       logoImg.style.display = "none";
@@ -475,66 +469,17 @@
       logoImg.src = logoBasePath + ext;
       logoImg.style.display = "inline";
     };
-    testImg.onerror = function () {
-      tryLogo(i + 1);
-    };
+    testImg.onerror = function () { tryLogo(i + 1); };
     testImg.src = logoBasePath + ext;
   })();
 
-  // Modal dialog logic
-  document.getElementById('book-now-btn').onclick = function() {
-    document.getElementById('order-modal').style.display = 'flex';
-  };
-  document.getElementById('close-modal').onclick = function() {
-    document.getElementById('order-modal').style.display = 'none';
-  };
-  window.onclick = function(event) {
-    const modal = document.getElementById('order-modal');
-    if (event.target === modal) modal.style.display = "none";
-  };
-
-  // Weight quick-fill for modal
+  // Weight quick-fill
   function setWeight(gm) {
-    document.getElementById('quantity').value = gm + 'g';
-  }
-  // Weight quick-fill for WhatsApp form (legacy)
-  function setWeightOld(gm) {
     document.getElementById('cqty').value = gm + 'g';
     updateMessage();
   }
 
-  // Google Apps Script URL (update this to your actual script URL)
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9NEKxlLwMx-5cOBYlWlM4blXvlHTixCpcbsw_sFNZSmnMmKbMwrzGLOOZBPNZG6dN/exec";
-
-  function submitToSheet(event) {
-    event.preventDefault();
-    const name = document.getElementById('name').value.trim();
-    const product = document.getElementById('product').value;
-    const quantity = document.getElementById('quantity').value.trim();
-
-    const msg = document.getElementById('response-message');
-    msg.textContent = "Submitting...";
-
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ name, product, quantity }),
-      headers: { 'Content-Type': 'application/json' }
-    })
-    .then((res) => res.json())
-    .then((response) => {
-      if (response.result === 'success') {
-        msg.textContent = '✅ Order submitted successfully!';
-        document.getElementById('order-form').reset();
-      } else {
-        msg.textContent = '❌ Something went wrong.';
-      }
-    })
-    .catch((err) => {
-      msg.textContent = '⚠️ Network error. Please try again.';
-    });
-  }
-
-  // WhatsApp order form logic
+  // Update message preview
   function updateMessage() {
     const name = document.getElementById('cname').value.trim();
     const product = document.getElementById('cprod').value;
@@ -544,17 +489,57 @@
     if (product && qty) msg += `I'd like to order ${qty} of ${product}.`;
     document.getElementById('msg-preview').innerText = msg ? msg + " Looking forward to your reply!" : "Namaste! Please fill in your name, product, and quantity.";
   }
-  function sendWhatsApp() {
+  document.getElementById("order-form").oninput = updateMessage;
+
+  // GOOGLE SCRIPT WEB APP URL for saving to Google Sheets
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9NEKxlLwMx-5cOBYlWlM4blXvlHTixCpcbsw_sFNZSmnMmKbMwrzGLOOZBPNZG6dN/exec";
+
+  // Submit to both WhatsApp and Google Sheets
+  function submitOrderDual(event) {
+    event.preventDefault();
+
     const name = document.getElementById('cname').value.trim();
     const product = document.getElementById('cprod').value;
     const qty = document.getElementById('cqty').value.trim();
+    const msgPreview = document.getElementById('msg-preview');
+    const responseBox = document.getElementById('submit-response');
+
     if (!name || !product || !qty) {
-      alert("Please fill in all required fields.");
-      return;
+      msgPreview.innerText = "Please fill in all required fields.";
+      return false;
     }
+
+    // Prepare data for Google Sheets
+    const data = { 
+      name: name,
+      product: product,
+      quantity: qty
+    };
+
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(response => {
+      if (response.result === 'success') {
+        responseBox.textContent = '✅ Order submitted to Google Sheets!';
+      } else {
+        responseBox.textContent = '❌ Submission to Google Sheets failed.';
+      }
+    }).catch(() => {
+      responseBox.textContent = '⚠️ Network error. Please try again.';
+    });
+
+    // Prepare WhatsApp message and redirect
     const msg = `Namaste! My name is ${name}. I'd like to order ${qty} of ${product}. Looking forward to your reply!`;
-    const url = `https://wa.me/919738560719?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    const waUrl = `https://wa.me/919738560719?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
+
+    document.getElementById('order-form').reset();
+    msgPreview.innerText = "Namaste! Please fill in your name, product, and quantity to preview your order.";
+    return false;
   }
 </script>
 </body>
