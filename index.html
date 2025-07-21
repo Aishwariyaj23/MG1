@@ -389,31 +389,49 @@
 
 <section id="order">
   <h2>Order Your Microgreens</h2>
-  <form class="form" id="order-form" onsubmit="return submitOrderDual(event);" autocomplete="off">
-    <label for="cname">Your Name</label>
-    <input id="cname" type="text" required placeholder="Enter your name">
-    <label for="cprod">Select Product</label>
-    <select id="cprod" required>
+  <form class="form" id="order-form" onsubmit="return submitOrder(event);" autocomplete="off">
+    
+    <label for="cname">Your Name *</label>
+    <input id="cname" name="name" type="text" required placeholder="Enter your name">
+
+    <label for="ccontact">Contact Info (optional)</label>
+    <input id="ccontact" name="contact" type="text" placeholder="Phone or email">
+
+    <label for="cprod">Select Product *</label>
+    <select id="cprod" name="product" required>
       <option value="" disabled selected>Select microgreen</option>
       <option value="Sunflower Microgreens">Sunflower</option>
       <option value="Radish Microgreens">Radish</option>
       <option value="Mustard Microgreens">Mustard</option>
-      <option value="Pink Radish Microgreens">Pink Radish</option>
+      <option value=" Chia Microgreens">Chia</option>
+      <option value=" Watermelon  Microgreens">Watermelon</option>
+       <option value="Wheat Grass">WheatGrass</option>
       <option value="Mixed Microgreens">Mixed</option>
+
     </select>
-    <label for="cqty">Quantity</label>
+
+    <label for="cqty">Quantity *</label>
     <div class="weights">
-      <button type="button" onclick="setWeight(50)">50g</button>
-      <button type="button" onclick="setWeight(100)">100g</button>
-      <button type="button" onclick="setWeight(150)">150g</button>
-      <button type="button" onclick="setWeight(200)">200g</button>
+      <button type="button" onclick="setWeight('50g')">50g</button>
+      <button type="button" onclick="setWeight('100g')">100g</button>
+      <button type="button" onclick="setWeight('150g')">150g</button>
+      <button type="button" onclick="setWeight('200g')">200g</button>
     </div>
-    <input id="cqty" type="text" required placeholder="e.g., 100g">
-    <button type="submit" id="order-submit">Send via WhatsApp & Google Sheets</button>
-    <div id="msg-preview" class="preview">Namaste! Please fill in your name, product, and quantity to preview your order.</div>
+    <input id="cqty" name="quantity" type="text" required placeholder="e.g., 100g">
+
+    <label for="caddr">Address *</label>
+    <input id="caddr" name="address" type="text" required placeholder="Your delivery address">
+
+    <label for="cnotes">Additional Notes (optional)</label>
+    <textarea id="cnotes" name="notes" rows="3" placeholder="Optional message…"></textarea>
+
+    <button type="submit" class="submit-btn">Send via WhatsApp & Save</button>
+
+    <div id="msg-preview" class="preview">Namaste! Please fill in your name, product, quantity, and address to preview your order.</div>
     <div id="submit-response" class="response"></div>
   </form>
 </section>
+
 
 <section id="contact">
   <h2>Contact Us</h2>
@@ -471,55 +489,89 @@
 
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9NEKxlLwMx-5cOBYlWlM4blXvlHTixCpcbsw_sFNZSmnMmKbMwrzGLOOZBPNZG6dN/exec";
 
-  function submitOrderDual(event) {
+  function setWeight(qty) {
+    document.getElementById('cqty').value = qty;
+    updateMessage();
+  }
+
+  document.getElementById("order-form").oninput = updateMessage;
+
+  function updateMessage() {
+    const name     = document.getElementById('cname').value.trim();
+    const contact  = document.getElementById('ccontact').value.trim();
+    const product  = document.getElementById('cprod').value;
+    const quantity = document.getElementById('cqty').value.trim();
+    const address  = document.getElementById('caddr').value.trim();
+    const notes    = document.getElementById('cnotes').value.trim();
+
+    let msg = `Namaste! My name is ${name}.`;
+    if (quantity && product) msg += ` I'd like to order ${quantity} of ${product}.`;
+    if (contact) msg += ` Contact: ${contact}.`;
+    if (address) msg += ` Address: ${address}.`;
+    if (notes) msg += ` Notes: ${notes}.`;
+    
+    msg += ` Looking forward to your reply!`;
+    document.getElementById('msg-preview').innerText = msg;
+  }
+
+  function submitOrder(event) {
     event.preventDefault();
 
-    const name = document.getElementById('cname').value.trim();
-    const product = document.getElementById('cprod').value;
-    const qty = document.getElementById('cqty').value.trim();
-    const msgPreview = document.getElementById('msg-preview');
-    const responseBox = document.getElementById('submit-response');
+    const name     = document.getElementById('cname').value.trim();
+    const contact  = document.getElementById('ccontact').value.trim();
+    const product  = document.getElementById('cprod').value;
+    const quantity = document.getElementById('cqty').value.trim();
+    const address  = document.getElementById('caddr').value.trim();
+    const notes    = document.getElementById('cnotes').value.trim();
+    const responseBox = document.getElementById("submit-response");
 
-    if (!name || !product || !qty) {
-      msgPreview.innerText = "❌ Please fill in all required fields.";
+    if (!name || !product || !quantity || !address) {
+      responseBox.innerText = "❌ Please fill all required fields.";
+      responseBox.style.color = "red";
       return false;
     }
 
-    // ✅ Prepare form-encoded data (avoids CORS preflight)
-    const formData = new URLSearchParams();
-    formData.append("name", name);
-    formData.append("product", product);
-    formData.append("quantity", qty);
-    formData.append("status", "Pending");       // Optional default field
-    formData.append("contact", "");
-    formData.append("address", "");
-    formData.append("notes", "");
+    const data = new URLSearchParams();
+    data.append("name", name);
+    data.append("contact", contact);
+    data.append("product", product);
+    data.append("quantity", quantity);
+    data.append("address", address);
+    data.append("notes", notes);
+    data.append("status", "Pending");
 
-    // ✅ Fetch using no custom headers (so CORS preflight is skipped)
+    // Submit to Google Sheets
     fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      body: formData
+      method: "POST",
+      body: data
     })
     .then(res => res.text())
-    .then(response => {
-      if (response.toLowerCase().includes('success')) {
-        responseBox.textContent = '✅ Order saved to Google Sheets!';
+    .then(text => {
+      if (text.toLowerCase().includes("success")) {
+        responseBox.innerText = "✅ Order submitted successfully!";
+        responseBox.style.color = "green";
       } else {
-        responseBox.textContent = '⚠️ Submission failed. Try again.';
+        responseBox.innerText = "⚠️ Failed to save order.";
+        responseBox.style.color = "red";
       }
     })
     .catch(() => {
-      responseBox.textContent = '⚠️ Network error. Please try again.';
+      responseBox.innerText = "⚠️ Network error. Please try again.";
+      responseBox.style.color = "red";
     });
 
-    // ✅ Send to WhatsApp
-    const msg = `Namaste! My name is ${name}. I'd like to order ${qty} of ${product}. Looking forward to your reply!`;
-    const waUrl = `https://wa.me/919738560719?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, "_blank");
+    // Send to WhatsApp
+    let waMsg = `Namaste! My name is ${name}. I’d like to order ${quantity} of ${product}.`;
+    if (contact) waMsg += ` Contact: ${contact}.`;
+    if (address) waMsg += ` Address: ${address}.`;
+    if (notes) waMsg += ` Notes: ${notes}.`;
+    waMsg += ` Looking forward to your reply!`;
 
-    // ✅ Reset form & preview
-    document.getElementById('order-form').reset();
-    msgPreview.innerText = "Namaste! Please fill in your name, product, and quantity to preview your order.";
+    const waURL = `https://wa.me/919738560719?text=${encodeURIComponent(waMsg)}`;
+    window.open(waURL, "_blank");
+
+    document.getElementById("order-form").reset();
+    updateMessage();
     return false;
   }
 </script>
