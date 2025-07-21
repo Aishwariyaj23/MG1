@@ -1,3 +1,15 @@
+document.addEventListener('DOMContentLoaded', function() {
+    // Weight buttons
+    document.querySelectorAll('.weights button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('cqty').value = this.getAttribute('data-weight');
+            // If you have a message preview function:
+            if (typeof updateMessage === 'function') updateMessage();
+        });
+    });
+    
+    // ... rest of your existing code
+});
 // Product data
 const productData = {
   "Sunflower Microgreens": {

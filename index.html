@@ -46,17 +46,25 @@
 </section>
 
 <section id="benefits">
-  <h2>Why Choose Microgreens?</h2>
-  <ul>
-    <li><strong>Up to 40x more nutrients</strong> than mature greens</li>
-    <li><strong>Harvest-ready in 7–10 days</strong> — ultra fresh produce always</li>
-    <li><strong>Eco-friendly farming</strong>: 90% less water, no chemical pesticides</li>
-    <li><strong>Flavor variety</strong>: from spicy to sweet to nutty</li>
-    <li><strong>Natural disease fighters</strong>: antioxidants, detox agents</li>
-    <li><strong>Perfect for every dish</strong>: salads, smoothies, sandwiches, curries & pizza!</li>
-    <li><strong>Boost immunity</strong>, aid digestion, enhance skin & vision</li>
-    <li><strong>Support sustainable agriculture</strong> and reduce your carbon footprint</li>
-  </ul>
+  <div class="benefits-container">
+    <div class="benefits-image">
+      <!-- Add your image here -->
+      <img src="images/microgreens-benefits.jpg" alt="Nutritious Microgreens">
+    </div>
+    <div class="benefits-content">
+      <h2>Why Choose Microgreens?</h2>
+      <ul>
+        <li><strong>Up to 40x more nutrients</strong> than mature greens</li>
+        <li><strong>Harvest-ready in 7–10 days</strong> — ultra fresh produce always</li>
+        <li><strong>Eco-friendly farming</strong>: 90% less water, no chemical pesticides</li>
+        <li><strong>Flavor variety</strong>: from spicy to sweet to nutty</li>
+        <li><strong>Natural disease fighters</strong>: antioxidants, detox agents</li>
+        <li><strong>Perfect for every dish</strong>: salads, smoothies, sandwiches, curries & pizza!</li>
+        <li><strong>Boost immunity</strong>, aid digestion, enhance skin & vision</li>
+        <li><strong>Support sustainable agriculture</strong> and reduce your carbon footprint</li>
+      </ul>
+    </div>
+  </div>
 </section>
 
 <section id="why-us">
@@ -67,6 +75,7 @@
     <li>Eco packaging and farm-to-fork traceability</li>
     <li>Hands-on care, every tray grown with love</li>
   </ul>
+  
 </section>
 
 <section id="products">
@@ -163,12 +172,12 @@
 
     <label for="cqty">Quantity *</label>
     <div class="weights">
-      <button type="button" onclick="setWeight('50g')">50g</button>
-      <button type="button" onclick="setWeight('100g')">100g</button>
-      <button type="button" onclick="setWeight('150g')">150g</button>
-      <button type="button" onclick="setWeight('200g')">200g</button>
-    </div>
-    <input id="cqty" name="quantity" type="text" required placeholder="e.g., 100g">
+    <button type="button" data-weight="50g">50g</button>
+    <button type="button" data-weight="100g">100g</button>
+    <button type="button" data-weight="150g">150g</button>
+    <button type="button" data-weight="200g">200g</button>
+</div>
+<input id="cqty" name="quantity" type="text" required placeholder="e.g., 100g">
 
     <label for="caddr">Address *</label>
     <input id="caddr" name="address" type="text" required placeholder="Your delivery address">
