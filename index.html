@@ -132,12 +132,15 @@
 
 <section id="order">
   <h2>Order Your Microgreens</h2>
-  <form class="form" id="order-form" onsubmit="return submitOrder(event);" autocomplete="off">
+  <form class="form" id="order-form" autocomplete="off">
+
     <label for="cname">Your Name *</label>
     <input id="cname" name="name" type="text" required placeholder="Enter your name">
 
     <label for="ccontact">Contact Info *</label>
-    <input id="ccontact" name="contact" type="text" required placeholder="Phone or email">
+    <input id="ccontact" name="contact" type="text" required placeholder="Phone">
+<label for="cemail">Email Address *</label>
+<input id="cemail" name="email" type="email" required placeholder="Your email address">
 
     <label for="cprod">Select Product *</label>
     <select id="cprod" name="product" required>
