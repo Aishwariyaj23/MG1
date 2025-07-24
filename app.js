@@ -52,7 +52,7 @@ const productData = {
     ]
   },
   "Wheat Grass": {
-    image: "images/wheat-grass.jpg",
+    image: "images/Wheat-grass.jpg",
     price: 65,
     description: "Wheat grass is a nutrient-packed superfood known for its high chlorophyll content and detoxifying properties.",
     benefits: [
