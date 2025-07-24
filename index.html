@@ -1,29 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aishaura Microgreens</title>
-  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header aria-label="Site logo and brand title">
-  <img id="logo-img" class="logo" alt="Aishaura Microgreens Logo" />
+  <img id="logo-img" class="logo" alt="Aishaura Microgreens Logo">
   <h1>Aishaura Microgreens</h1>
   <p>Fresh, Sustainable Nutrition for Every Home</p>
 </header>
+
+<div id="cart-container">
+  <div id="cart-icon">
+    🛒 <span id="cart-count">0</span>
+  </div>
+  <div id="cart-dropdown">
+    <div id="cart-items"></div>
+    <div id="cart-summary">
+      <div>Subtotal: <span id="cart-subtotal">₹0</span></div>
+      <div>Delivery: <span id="cart-delivery">₹0</span></div>
+      <div id="cart-total">Total: ₹0</div>
+    </div>
+    <button id="view-cart">View Cart</button>
+    <button id="checkout-btn">Proceed to Checkout</button>
+    <button id="clear-cart">Clear Cart</button>
+  </div>
+</div>
 
 <nav aria-label="Main site navigation">
   <a href="#about">About</a>
   <a href="#benefits">Why Microgreens</a>
   <a href="#why-us">Why Us</a>
   <a href="#products">Products</a>
-  <a href="#gallery">Gallery</a>
   <a href="#recipes">Recipes</a>
-  <a href="#order">Order</a>
   <a href="#contact">Contact</a>
 </nav>
 
@@ -39,7 +54,6 @@
       </ul>
     </div>
     <div class="about-image">
-      <!-- You can add your image here -->
       <img src="images/about-image.jpg" alt="Aishaura Microgreens Farm">
     </div>
   </div>
@@ -48,7 +62,6 @@
 <section id="benefits">
   <div class="benefits-container">
     <div class="benefits-image">
-      <!-- Add your image here -->
       <img src="images/microgreens-benefits.jpg" alt="Nutritious Microgreens">
     </div>
     <div class="benefits-content">
@@ -58,10 +71,7 @@
         <li><strong>Harvest-ready in 7–10 days</strong> — ultra fresh produce always</li>
         <li><strong>Eco-friendly farming</strong>: 90% less water, no chemical pesticides</li>
         <li><strong>Flavor variety</strong>: from spicy to sweet to nutty</li>
-        <li><strong>Natural disease fighters</strong>: antioxidants, detox agents</li>
         <li><strong>Perfect for every dish</strong>: salads, smoothies, sandwiches, curries & pizza!</li>
-        <li><strong>Boost immunity</strong>, aid digestion, enhance skin & vision</li>
-        <li><strong>Support sustainable agriculture</strong> and reduce your carbon footprint</li>
       </ul>
     </div>
   </div>
@@ -73,53 +83,95 @@
     <li>Homegrown & pesticide-free using sustainable practices</li>
     <li>Harvest-to-door freshness: orders cut the same day of delivery</li>
     <li>Eco packaging and farm-to-fork traceability</li>
-    <li>Hands-on care, every tray grown with love</li>
   </ul>
-  
 </section>
 
 <section id="products">
   <h2>Our Products</h2>
   <div class="gallery">
     <div class="card" role="listitem">
-      <img src="images/sunflower.jpg" alt="Sunflower Microgreens" />
+      <img src="images/sunflower.jpg" alt="Sunflower Microgreens">
       <div class="gallery-title">Sunflower Microgreens</div>
+      <div class="product-price">₹60 per 50g</div>
       <ul class="benefits-list">
         <li>High in protein, crunchy & energy-boosting</li>
         <li>Rich in vitamin E and B6, magnesium, zinc</li>
       </ul>
+      <div class="quantity-selector">
+        <button class="quantity-btn minus">-</button>
+        <input type="number" value="50" min="50" step="50" class="quantity-input">
+        <span class="quantity-unit">g</span>
+        <button class="quantity-btn plus">+</button>
+      </div>
+      <button class="add-to-cart" data-product="Sunflower Microgreens" data-price="60">Add to Cart</button>
     </div>
+    
     <div class="card" role="listitem">
-      <img src="images/radish.jpg" alt="Radish Microgreens" />
+      <img src="images/radish.jpg" alt="Radish Microgreens">
       <div class="gallery-title">Radish Microgreens</div>
+      <div class="product-price">₹55 per 50g</div>
       <ul class="benefits-list">
         <li>Spicy and vitamin-rich, great for digestion</li>
         <li>High in vitamin C, supports metabolism</li>
       </ul>
+      <div class="quantity-selector">
+        <button class="quantity-btn minus">-</button>
+        <input type="number" value="50" min="50" step="50" class="quantity-input">
+        <span class="quantity-unit">g</span>
+        <button class="quantity-btn plus">+</button>
+      </div>
+      <button class="add-to-cart" data-product="Radish Microgreens" data-price="55">Add to Cart</button>
     </div>
+    
     <div class="card" role="listitem">
-      <img src="images/mustard.png" alt="Mustard Microgreens" />
+      <img src="images/mustard.png" alt="Mustard Microgreens">
       <div class="gallery-title">Mustard Microgreens</div>
+      <div class="product-price">₹50 per 50g</div>
       <ul class="benefits-list">
         <li>Fiery & bold, rich in Vitamin K and flavor</li>
         <li>Supports healthy metabolism and bones</li>
       </ul>
+      <div class="quantity-selector">
+        <button class="quantity-btn minus">-</button>
+        <input type="number" value="50" min="50" step="50" class="quantity-input">
+        <span class="quantity-unit">g</span>
+        <button class="quantity-btn plus">+</button>
+      </div>
+      <button class="add-to-cart" data-product="Mustard Microgreens" data-price="50">Add to Cart</button>
     </div>
+    
     <div class="card" role="listitem">
-      <img src="images/Wheat-Grass.jpg" alt="Wheat Grass" />
+      <img src="images/wheat-grass.jpg" alt="Wheat Grass">
       <div class="gallery-title">Wheat Grass</div>
+      <div class="product-price">₹65 per 50g</div>
       <ul class="benefits-list">
         <li>Nutrient-dense superfood, rich in chlorophyll</li>
         <li>Supports detoxification and blood health</li>
       </ul>
+      <div class="quantity-selector">
+        <button class="quantity-btn minus">-</button>
+        <input type="number" value="50" min="50" step="50" class="quantity-input">
+        <span class="quantity-unit">g</span>
+        <button class="quantity-btn plus">+</button>
+      </div>
+      <button class="add-to-cart" data-product="Wheat Grass" data-price="65">Add to Cart</button>
     </div>
+    
     <div class="card" role="listitem">
-      <img src="images/mixed.jpg" alt="Mixed Microgreens" />
+      <img src="images/mixed.jpg" alt="Mixed Microgreens">
       <div class="gallery-title">Mixed Microgreens</div>
+      <div class="product-price">₹60 per 50g</div>
       <ul class="benefits-list">
         <li>Chef's mix: diverse taste & full nourishment</li>
         <li>All varieties for complete nutrition</li>
       </ul>
+      <div class="quantity-selector">
+        <button class="quantity-btn minus">-</button>
+        <input type="number" value="50" min="50" step="50" class="quantity-input">
+        <span class="quantity-unit">g</span>
+        <button class="quantity-btn plus">+</button>
+      </div>
+      <button class="add-to-cart" data-product="Mixed Microgreens" data-price="60">Add to Cart</button>
     </div>
   </div>
 </section>
@@ -128,67 +180,22 @@
   <h2>Recipe Ideas</h2>
   <div class="gallery recipes-flex">
     <div class="card recipe-art">
-      <img src="images/avocado-toast.jpg" alt="Microgreens Avocado Toast"/>
+      <img src="images/avocado-toast.jpg" alt="Microgreens Avocado Toast">
       <div class="gallery-title">Microgreens Avocado Toast</div>
     </div>
     <div class="card recipe-art">
-      <img src="images/sunflower-smoothie.jpg" alt="Sunflower Green Smoothie"/>
+      <img src="images/sunflower-smoothie.jpg" alt="Sunflower Green Smoothie">
       <div class="gallery-title">Sunflower Green Smoothie</div>
     </div>
     <div class="card recipe-art">
-      <img src="images/buddha-bowl.jpg" alt="Microgreen Buddha Bowl"/>
+      <img src="images/buddha-bowl.jpg" alt="Microgreen Buddha Bowl">
       <div class="gallery-title">Microgreen Buddha Bowl</div>
     </div>
     <div class="card recipe-art">
-      <img src="images/radish-salad.jpg" alt="Radish Microgreen Salad"/>
+      <img src="images/radish-salad.jpg" alt="Radish Microgreen Salad">
       <div class="gallery-title">Radish Microgreen Salad</div>
     </div>
   </div>
-</section>
-
-<section id="order">
-  <h2>Order Your Microgreens</h2>
-  <form class="form" id="order-form" autocomplete="off">
-    <label for="cname">Your Name *</label>
-    <input id="cname" name="name" type="text" required placeholder="Enter your name">
-
-    <label for="ccontact">Contact Info *</label>
-    <input id="ccontact" name="contact" type="text" required placeholder="Phone">
-    
-    <label for="cemail">Email Address *</label>
-    <input id="cemail" name="email" type="email" required placeholder="Your email address">
-
-    <label for="cprod">Select Product *</label>
-    <select id="cprod" name="product" required>
-      <option value="" disabled selected>Select microgreen</option>
-      <option value="Sunflower Microgreens">Sunflower</option>
-      <option value="Radish Microgreens">Radish</option>
-      <option value="Mustard Microgreens">Mustard</option>
-      <option value="Chia Microgreens">Chia</option>
-      <option value="Watermelon Microgreens">Watermelon</option>
-      <option value="Wheat Grass">WheatGrass</option>
-      <option value="Mixed Microgreens">Mixed</option>
-    </select>
-
-    <label for="cqty">Quantity *</label>
-    <div class="weights">
-    <button type="button" data-weight="50g">50g</button>
-    <button type="button" data-weight="100g">100g</button>
-    <button type="button" data-weight="150g">150g</button>
-    <button type="button" data-weight="200g">200g</button>
-</div>
-<input id="cqty" name="quantity" type="text" required placeholder="e.g., 100g">
-
-    <label for="caddr">Address *</label>
-    <input id="caddr" name="address" type="text" required placeholder="Your delivery address">
-
-    <label for="cnotes">Additional Notes (optional)</label>
-    <textarea id="cnotes" name="notes" rows="3" placeholder="Optional message…"></textarea>
-
-    <button type="submit" class="submit-btn">Submit</button>
-    <div id="msg-preview" class="preview">Namaste! Please fill in your name, product, quantity, and address to preview your order.</div>
-    <div id="submit-response" class="response"></div>
-  </form>
 </section>
 
 <section id="contact">
@@ -199,18 +206,134 @@
   <p><b>Delivery:</b> Every Friday • Book by Thursday night</p>
 </section>
 
-<!-- Modal Dialog -->
+<!-- Product Modal -->
 <div id="product-modal" class="modal">
   <div class="modal-content">
     <span class="close-modal">&times;</span>
     <div class="modal-body">
       <img id="modal-image" src="" alt="">
       <h2 id="modal-title"></h2>
+      <div class="modal-price" id="modal-price"></div>
       <div id="modal-description"></div>
       <h3>Health Benefits</h3>
       <ul id="modal-benefits"></ul>
       <h3>How to Use</h3>
       <ul id="modal-usage"></ul>
+      <div class="quantity-selector">
+        <button class="quantity-btn minus">-</button>
+        <input type="number" value="50" min="50" step="50" class="quantity-input">
+        <span class="quantity-unit">g</span>
+        <button class="quantity-btn plus">+</button>
+      </div>
+      <button class="add-to-cart-modal" id="add-to-cart-modal">Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- Checkout Modal -->
+<div id="checkout-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <div class="checkout-steps">
+      <div class="step active" data-step="1">1. Review Order</div>
+      <div class="step" data-step="2">2. Customer Info</div>
+      <div class="step" data-step="3">3. Payment</div>
+    </div>
+    
+    <div id="checkout-content">
+      <!-- Step 1: Review Order -->
+      <div class="checkout-step" id="step-1">
+        <h2>Review Your Order</h2>
+        <div class="order-summary">
+          <div class="order-items" id="checkout-items"></div>
+          <div class="order-totals">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span id="checkout-subtotal">₹0</span>
+            </div>
+            <div class="total-row">
+              <span>Delivery:</span>
+              <span id="checkout-delivery">₹0</span>
+            </div>
+            <div class="total-row grand-total">
+              <span>Total:</span>
+              <span id="checkout-total">₹0</span>
+            </div>
+          </div>
+        </div>
+        <div class="checkout-actions">
+          <button class="btn-continue" id="btn-continue">Continue to Checkout</button>
+        </div>
+      </div>
+      
+      <!-- Step 2: Customer Info -->
+      <div class="checkout-step" id="step-2" style="display:none;">
+        <h2>Customer Information</h2>
+        <form id="customer-info-form">
+          <div class="form-group">
+            <label for="customer-name">Full Name *</label>
+            <input type="text" id="customer-name" required>
+          </div>
+          <div class="form-group">
+            <label for="customer-phone">Phone Number *</label>
+            <input type="tel" id="customer-phone" required>
+          </div>
+          <div class="form-group">
+            <label for="customer-email">Email Address *</label>
+            <input type="email" id="customer-email" required>
+          </div>
+          <div class="form-group">
+            <label for="customer-address">Delivery Address *</label>
+            <textarea id="customer-address" rows="3" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="customer-notes">Special Instructions</label>
+            <textarea id="customer-notes" rows="2"></textarea>
+          </div>
+          <div class="checkout-actions">
+            <button type="button" class="btn-back">Back</button>
+            <button type="button" class="btn-continue" id="btn-to-payment">Continue to Payment</button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Step 3: Payment -->
+      <div class="checkout-step" id="step-3" style="display:none;">
+        <h2>Payment Method</h2>
+        <div class="payment-options">
+          <div class="payment-option active" data-method="upi">
+            <div class="payment-icon">💳</div>
+            <div class="payment-details">
+              <h3>UPI Payment</h3>
+              <p>Pay instantly using any UPI app</p>
+              <div class="upi-details" id="upi-details">
+                <p>Scan this QR code or send to:</p>
+                <div class="upi-qr-placeholder">[Your UPI QR Code]</div>
+                <div class="upi-id">UPI ID: your.upi.id@bank</div>
+              </div>
+            </div>
+          </div>
+          <div class="payment-option" data-method="cod">
+            <div class="payment-icon">💰</div>
+            <div class="payment-details">
+              <h3>Cash on Delivery</h3>
+              <p>Pay when you receive your order</p>
+            </div>
+          </div>
+        </div>
+        <div class="order-summary-payment">
+          <h3>Order Summary</h3>
+          <div id="payment-order-items"></div>
+          <div class="total-row grand-total">
+            <span>Total:</span>
+            <span id="payment-total">₹0</span>
+          </div>
+        </div>
+        <div class="checkout-actions">
+          <button type="button" class="btn-back">Back</button>
+          <button type="button" class="btn-submit" id="btn-place-order">Place Order</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
