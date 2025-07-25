@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 </head>
 <body>
 <header aria-label="Site logo and brand title">
@@ -24,7 +25,7 @@
     <div id="cart-items"></div>
     <div id="cart-summary">
       <div>Subtotal: <span id="cart-subtotal">₹0</span></div>
-      <div>Delivery: <span id="cart-delivery">₹0</span></div>
+      <div>Delivery: <span id="cart-delivery">FREE</span></div>
       <div id="cart-total">Total: ₹0</div>
     </div>
     <button id="view-cart">View Cart</button>
@@ -92,7 +93,7 @@
     <div class="card" role="listitem">
       <img src="images/sunflower.jpg" alt="Sunflower Microgreens">
       <div class="gallery-title">Sunflower Microgreens</div>
-      <div class="product-price">₹60 per 50g</div>
+      <div class="product-price">₹69 per 50g</div>
       <ul class="benefits-list">
         <li>High in protein, crunchy & energy-boosting</li>
         <li>Rich in vitamin E and B6, magnesium, zinc</li>
@@ -103,13 +104,13 @@
         <span class="quantity-unit">g</span>
         <button class="quantity-btn plus">+</button>
       </div>
-      <button class="add-to-cart" data-product="Sunflower Microgreens" data-price="60">Add to Cart</button>
+      <button class="add-to-cart" data-product="Sunflower Microgreens" data-price="69">Add to Cart</button>
     </div>
     
     <div class="card" role="listitem">
       <img src="images/radish.jpg" alt="Radish Microgreens">
       <div class="gallery-title">Radish Microgreens</div>
-      <div class="product-price">₹55 per 50g</div>
+      <div class="product-price">₹63 per 50g</div>
       <ul class="benefits-list">
         <li>Spicy and vitamin-rich, great for digestion</li>
         <li>High in vitamin C, supports metabolism</li>
@@ -120,13 +121,13 @@
         <span class="quantity-unit">g</span>
         <button class="quantity-btn plus">+</button>
       </div>
-      <button class="add-to-cart" data-product="Radish Microgreens" data-price="55">Add to Cart</button>
+      <button class="add-to-cart" data-product="Radish Microgreens" data-price="63">Add to Cart</button>
     </div>
     
     <div class="card" role="listitem">
       <img src="images/mustard.png" alt="Mustard Microgreens">
       <div class="gallery-title">Mustard Microgreens</div>
-      <div class="product-price">₹50 per 50g</div>
+      <div class="product-price">₹58 per 50g</div>
       <ul class="benefits-list">
         <li>Fiery & bold, rich in Vitamin K and flavor</li>
         <li>Supports healthy metabolism and bones</li>
@@ -137,13 +138,13 @@
         <span class="quantity-unit">g</span>
         <button class="quantity-btn plus">+</button>
       </div>
-      <button class="add-to-cart" data-product="Mustard Microgreens" data-price="50">Add to Cart</button>
+      <button class="add-to-cart" data-product="Mustard Microgreens" data-price="58">Add to Cart</button>
     </div>
     
     <div class="card" role="listitem">
-      <img src="images/Wheat-grass.jpg" alt="Wheat Grass">
+      <img src="images/wheat-grass.jpg" alt="Wheat Grass">
       <div class="gallery-title">Wheat Grass</div>
-      <div class="product-price">₹65 per 50g</div>
+      <div class="product-price">₹75 per 50g</div>
       <ul class="benefits-list">
         <li>Nutrient-dense superfood, rich in chlorophyll</li>
         <li>Supports detoxification and blood health</li>
@@ -154,13 +155,13 @@
         <span class="quantity-unit">g</span>
         <button class="quantity-btn plus">+</button>
       </div>
-      <button class="add-to-cart" data-product="Wheat Grass" data-price="65">Add to Cart</button>
+      <button class="add-to-cart" data-product="Wheat Grass" data-price="75">Add to Cart</button>
     </div>
     
     <div class="card" role="listitem">
       <img src="images/mixed.jpg" alt="Mixed Microgreens">
       <div class="gallery-title">Mixed Microgreens</div>
-      <div class="product-price">₹60 per 50g</div>
+      <div class="product-price">₹69 per 50g</div>
       <ul class="benefits-list">
         <li>Chef's mix: diverse taste & full nourishment</li>
         <li>All varieties for complete nutrition</li>
@@ -171,7 +172,7 @@
         <span class="quantity-unit">g</span>
         <button class="quantity-btn plus">+</button>
       </div>
-      <button class="add-to-cart" data-product="Mixed Microgreens" data-price="60">Add to Cart</button>
+      <button class="add-to-cart" data-product="Mixed Microgreens" data-price="69">Add to Cart</button>
     </div>
   </div>
 </section>
@@ -253,7 +254,7 @@
             </div>
             <div class="total-row">
               <span>Delivery:</span>
-              <span id="checkout-delivery">₹0</span>
+              <span id="checkout-delivery">FREE</span>
             </div>
             <div class="total-row grand-total">
               <span>Total:</span>
@@ -307,9 +308,10 @@
               <h3>UPI Payment</h3>
               <p>Pay instantly using any UPI app</p>
               <div class="upi-details" id="upi-details">
-                <p>Scan this QR code or send to:</p>
-                <div class="upi-qr-placeholder">[Your UPI QR Code]</div>
-                <div class="upi-id">UPI ID: your.upi.id@bank</div>
+                <p>Scan this QR code or click below to pay with any UPI app:</p>
+                <div class="upi-qr-code" id="upi-qr-code"></div>
+                <div class="upi-id">UPI ID: shashi.shashi7271@ybl</div>
+                <button class="upi-pay-button" id="upi-pay-button">Pay with UPI App</button>
               </div>
             </div>
           </div>
@@ -332,6 +334,19 @@
         <div class="checkout-actions">
           <button type="button" class="btn-back">Back</button>
           <button type="button" class="btn-submit" id="btn-place-order">Place Order</button>
+        </div>
+      </div>
+      
+      <!-- Step 4: Confirmation -->
+      <div class="checkout-step" id="step-4" style="display:none;">
+        <h2>Order Confirmed!</h2>
+        <div class="confirmation-message">
+          <p>Thank you for your order! Your order ID is <span id="confirmation-id"></span>.</p>
+          <p>Total amount: <span id="confirmation-total"></span></p>
+          <p>We'll contact you shortly with delivery details.</p>
+        </div>
+        <div class="checkout-actions">
+          <button type="button" class="btn-continue" onclick="document.getElementById('checkout-modal').style.display='none'">Continue Shopping</button>
         </div>
       </div>
     </div>
