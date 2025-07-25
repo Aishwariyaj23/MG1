@@ -673,7 +673,7 @@ function showCheckoutStep(step) {
   // Generate QR code for payment step
   if (step === 3) {
     const total = calculateOrderTotal();
-    const qrData = `upi://pay?pa=aishaura.greens@upi&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    const qrData = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
     
     // Clear previous QR code
     const qrContainer = document.getElementById('upi-qr-code');
@@ -701,7 +701,7 @@ function showCheckoutStep(step) {
         qrContainer.innerHTML = `
           <div style="text-align:center; padding:20px;">
             <p>Please send payment to:</p>
-            <p style="font-weight:bold; font-size:1.2rem;">aishaura.greens@upi</p>
+            <p style="font-weight:bold; font-size:1.2rem;">shashi.shashi7271@ybl</p>
             <p>Amount: ₹${total.toFixed(2)}</p>
           </div>
         `;
@@ -859,7 +859,7 @@ function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, ad
     
     if (paymentMethod === 'upi') {
       message += `\nPlease complete your UPI payment to:\n`;
-      message += `UPI ID: aishaura.greens@upi\n\n`;
+      message += `UPI ID: shashi.shashi7271@ybl\n\n`;
       message += `We'll process your order once payment is confirmed.`;
     } else {
       message += `\nWe'll process your order shortly. Please keep cash ready for delivery.`;
