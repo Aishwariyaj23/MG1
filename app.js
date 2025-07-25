@@ -487,7 +487,7 @@ function setupCheckout() {
   // UPI Pay button
   document.getElementById('upi-pay-button').addEventListener('click', function() {
     const total = calculateOrderTotal();
-    const upiLink = `upi://pay?pa=aishaura.greens@upi&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
     window.open(upiLink, '_blank');
   });
 
