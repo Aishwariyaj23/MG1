@@ -487,7 +487,7 @@ function setupCheckout() {
   // UPI Pay button
   document.getElementById('upi-pay-button').addEventListener('click', function() {
     const total = calculateOrderTotal();
-    const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    const upiLink = `upi://pay?pa=aishaura.greens@upi&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
     window.open(upiLink, '_blank');
   });
 
@@ -673,7 +673,7 @@ function showCheckoutStep(step) {
   // Generate QR code for payment step
   if (step === 3) {
     const total = calculateOrderTotal();
-    const qrData = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    const qrData = `upi://pay?pa=aishaura.greens@upi&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
     
     // Clear previous QR code
     const qrContainer = document.getElementById('upi-qr-code');
@@ -701,7 +701,7 @@ function showCheckoutStep(step) {
         qrContainer.innerHTML = `
           <div style="text-align:center; padding:20px;">
             <p>Please send payment to:</p>
-            <p style="font-weight:bold; font-size:1.2rem;">shashi.shashi7271@ybl</p>
+            <p style="font-weight:bold; font-size:1.2rem;">aishaura.greens@upi</p>
             <p>Amount: ₹${total.toFixed(2)}</p>
           </div>
         `;
@@ -781,18 +781,20 @@ function validateCustomerInfo() {
 }
 
 async function submitOrder() {
-  const name = document.getElementById('customer-name').value.trim();
-  const phone = document.getElementById('customer-phone').value.trim();
-  const email = document.getElementById('customer-email').value.trim();
-  const address = document.getElementById('customer-address').value.trim();
-  const notes = document.getElementById('customer-notes').value.trim();
-  const paymentMethod = document.querySelector('.payment-option.active').getAttribute('data-method');
-  
-  // Calculate total
-  const total = calculateOrderTotal();
-  
+  // ... existing code ...
+
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
+    // First, make a HEAD request to get the final URL
+    const headResponse = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'HEAD',
+      redirect: 'follow'
+    });
+    
+    // Get the final URL after all redirects
+    const finalUrl = headResponse.url;
+    
+    // Now make the POST request to the final URL
+    const response = await fetch(finalUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -808,30 +810,15 @@ async function submitOrder() {
         payment_method: paymentMethod,
         status: paymentMethod === 'cod' ? 'Pending Payment' : 'Pending',
         sendEmail: 'yes'
-      })
+      }),
+      redirect: 'follow' // Important to follow redirects
     });
-    
+
     const data = await response.json();
-    
-    if (data.status === "success") {
-      // Show confirmation
-      document.getElementById('confirmation-id').textContent = `#${data.orderId}`;
-      document.getElementById('confirmation-total').textContent = `₹${total.toFixed(2)}`;
-      showCheckoutStep(4);
-      
-      // Clear cart
-      cart = [];
-      localStorage.removeItem('microgreensCart');
-      updateCartDisplay();
-      
-      // Send WhatsApp confirmation
-      sendWhatsAppConfirmation(name, phone, data.orderId, total, paymentMethod, address, notes);
-    } else {
-      alert('Order submission failed. Please try again.');
-    }
+    // ... rest of your success handling ...
   } catch (error) {
     console.error('Error:', error);
-    alert('Network error. Please check your connection and try again.');
+    alert('Order submission failed. Please try again or contact us directly.');
   }
 }
 
@@ -859,7 +846,7 @@ function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, ad
     
     if (paymentMethod === 'upi') {
       message += `\nPlease complete your UPI payment to:\n`;
-      message += `UPI ID: shashi.shashi7271@ybl\n\n`;
+      message += `UPI ID: aishaura.greens@upi\n\n`;
       message += `We'll process your order once payment is confirmed.`;
     } else {
       message += `\nWe'll process your order shortly. Please keep cash ready for delivery.`;
