@@ -11,6 +11,7 @@ body {
   background: var(--light);
   color: var(--text-color);
   line-height: 1.6;
+  overflow-x: hidden;
 }
 
 header {
@@ -682,15 +683,16 @@ h2 {
   display: block;
 }
 
-.upi-qr-placeholder {
+.upi-qr-code {
   width: 150px;
   height: 150px;
-  background: #f5f5f5;
   margin: 1rem auto;
+  padding: 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: #999;
 }
 
 .upi-id {
@@ -700,6 +702,23 @@ h2 {
   text-align: center;
   font-family: monospace;
   margin-top: 0.5rem;
+}
+
+.upi-pay-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+  transition: all 0.2s;
+}
+
+.upi-pay-button:hover {
+  background: #1da851;
 }
 
 .order-summary-payment {
@@ -712,6 +731,16 @@ h2 {
 .order-summary-payment h3 {
   margin-top: 0;
   color: var(--green);
+}
+
+.confirmation-message {
+  text-align: center;
+  padding: 2rem;
+}
+
+.confirmation-message p {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
 }
 
 /* About Section */
@@ -764,6 +793,26 @@ h2 {
 .benefits-content {
   flex: 1;
   min-width: 0;
+}
+
+/* Cart Notification */
+.cart-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--green);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1001;
+}
+
+.cart-notification.show {
+  opacity: 1;
 }
 
 /* Animations */
@@ -845,4 +894,57 @@ h2 {
     height: 25px;
     line-height: 25px;
   }
+}
+#upi-qr-code {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+  background: white;
+  padding: 10px;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.cart-item-info {
+  flex: 1;
+}
+
+.cart-item-info h4 {
+  margin: 0 0 0.3rem 0;
+}
+
+.cart-item-info div {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.item-total {
+  font-weight: bold;
+  color: var(--green);
+  margin-top: 0.3rem;
+}
+
+.remove-item {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.remove-item:hover {
+  background: #ff4757;
 }
