@@ -1,8 +1,20 @@
-// Product data
+// QR Code library check
+if (typeof QRCode === 'undefined') {
+  console.log('QRCode library not loaded - loading dynamically');
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js';
+  document.head.appendChild(script);
+}
+
+// Debug initialization
+console.log('Initializing microgreens application');
+console.log('Initial cart from localStorage:', JSON.parse(localStorage.getItem('microgreensCart')));
+
+// Product data with 15% increased prices
 const productData = {
   "Sunflower Microgreens": {
     image: "images/sunflower.jpg",
-    price: 60,
+    price: 69,
     description: "Sunflower microgreens are packed with nutrients and have a delightful crunchy texture.",
     benefits: [
       "High in protein for energy and muscle repair",
@@ -19,7 +31,7 @@ const productData = {
   },
   "Radish Microgreens": {
     image: "images/radish.jpg",
-    price: 55,
+    price: 63,
     description: "Spicy radish microgreens add a kick to any dish while providing powerful nutrients.",
     benefits: [
       "High in vitamin C for immune support",
@@ -36,7 +48,7 @@ const productData = {
   },
   "Mustard Microgreens": {
     image: "images/mustard.png",
-    price: 50,
+    price: 58,
     description: "Mustard microgreens bring bold flavor and impressive health benefits.",
     benefits: [
       "Rich in Vitamin K for bone health",
@@ -52,8 +64,8 @@ const productData = {
     ]
   },
   "Wheat Grass": {
-    image: "images/Wheat-grass.jpg",
-    price: 65,
+    image: "images/wheat-grass.jpg",
+    price: 75,
     description: "Wheat grass is a nutrient-packed superfood known for its high chlorophyll content and detoxifying properties.",
     benefits: [
       "Rich in chlorophyll which supports blood health",
@@ -70,7 +82,7 @@ const productData = {
   },
   "Mixed Microgreens": {
     image: "images/mixed.jpg",
-    price: 60,
+    price: 69,
     description: "Our mixed microgreens provide a variety of flavors and nutrients in one convenient package.",
     benefits: [
       "Provides diverse range of nutrients",
@@ -87,43 +99,158 @@ const productData = {
   }
 };
 
+// Recipe data
+const recipeData = {
+  "Microgreens Avocado Toast": {
+    image: "images/avocado-toast.jpg",
+    description: "A nutritious and delicious breakfast option packed with healthy fats and microgreen nutrients.",
+    ingredients: [
+      "2 slices whole grain bread",
+      "1 ripe avocado",
+      "50g sunflower microgreens",
+      "1 tbsp lemon juice",
+      "Salt and pepper to taste",
+      "Red pepper flakes (optional)"
+    ],
+    instructions: [
+      "Toast the bread until golden and crisp.",
+      "Mash the avocado with lemon juice, salt, and pepper.",
+      "Spread the avocado mixture evenly on the toast.",
+      "Top generously with sunflower microgreens.",
+      "Sprinkle with red pepper flakes if desired.",
+      "Serve immediately and enjoy!"
+    ],
+    benefits: [
+      "Rich in healthy monounsaturated fats from avocado",
+      "High in fiber for digestive health",
+      "Packed with vitamins and minerals from microgreens",
+      "Provides sustained energy throughout the morning"
+    ]
+  },
+  "Sunflower Green Smoothie": {
+    image: "images/sunflower-smoothie.jpg",
+    description: "A protein-packed smoothie that's perfect for post-workout recovery or a nutritious breakfast.",
+    ingredients: [
+      "1 banana",
+      "1 cup almond milk",
+      "50g sunflower microgreens",
+      "1 tbsp almond butter",
+      "1 tsp honey (optional)",
+      "Ice cubes"
+    ],
+    instructions: [
+      "Add all ingredients to a blender.",
+      "Blend until smooth and creamy.",
+      "Add more almond milk if needed for desired consistency.",
+      "Pour into a glass and enjoy immediately."
+    ],
+    benefits: [
+      "High in plant-based protein",
+      "Rich in vitamins and minerals",
+      "Great for muscle recovery",
+      "Provides sustained energy"
+    ]
+  },
+  "Microgreen Buddha Bowl": {
+    image: "images/buddha-bowl.jpg",
+    description: "A colorful and nutritious bowl packed with wholesome ingredients and fresh microgreens.",
+    ingredients: [
+      "1 cup cooked quinoa",
+      "50g mixed microgreens",
+      "1/2 avocado, sliced",
+      "1/2 cup chickpeas",
+      "1/4 cup shredded carrots",
+      "1/4 cup sliced cucumber",
+      "2 tbsp tahini dressing"
+    ],
+    instructions: [
+      "Arrange quinoa at the bottom of a bowl.",
+      "Add microgreens, avocado, chickpeas, carrots, and cucumber.",
+      "Drizzle with tahini dressing.",
+      "Toss gently before eating or enjoy as arranged."
+    ],
+    benefits: [
+      "Complete plant-based meal",
+      "High in fiber and protein",
+      "Packed with vitamins and antioxidants",
+      "Supports gut health"
+    ]
+  },
+  "Radish Microgreen Salad": {
+    image: "images/radish-salad.jpg",
+    description: "A refreshing and spicy salad with radish microgreens as the star ingredient.",
+    ingredients: [
+      "50g radish microgreens",
+      "1 cup mixed salad greens",
+      "1/2 cup cherry tomatoes, halved",
+      "1/4 cup sliced radishes",
+      "2 tbsp olive oil",
+      "1 tbsp lemon juice",
+      "Salt and pepper to taste"
+    ],
+    instructions: [
+      "Combine radish microgreens, salad greens, tomatoes, and radishes in a bowl.",
+      "Whisk together olive oil, lemon juice, salt, and pepper.",
+      "Drizzle dressing over salad and toss gently.",
+      "Serve immediately for maximum freshness."
+    ],
+    benefits: [
+      "High in vitamin C",
+      "Supports digestion",
+      "Low calorie but nutrient-dense",
+      "Antioxidant-rich"
+    ]
+  }
+};
+
 // Google Apps Script endpoint
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqXsGVNYqX3UQoZLVIYcW9i4zI2No0OCV3JmYc0yEhlN0lhoj8w4bdaX_-Y3ZiRu9N6Q/exec";
 
 // Cart functionality
-let cart = JSON.parse(localStorage.getItem('microgreensCart')) || [];
+let cart = [];
 let currentCheckoutStep = 1;
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM fully loaded - initializing application');
+  
+  // Initialize cart from localStorage or empty array
+  const storedCart = localStorage.getItem('microgreensCart');
+  cart = storedCart ? JSON.parse(storedCart) : [];
+  console.log('Cart initialized with:', cart);
+  
   initializeModal();
   initializeCart();
   setupProductQuantity();
   setupCheckout();
   
-  // Dynamic logo auto-detection
+  // Dynamic logo loading
+  loadLogo();
+});
+
+function loadLogo() {
   const logoExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
   const logoBasePath = 'images/generated-image.';
   const logoImg = document.getElementById('logo-img');
 
   (function tryLogo(i = 0) {
-      if (i >= logoExtensions.length) {
-          logoImg.alt = "Logo not found";
-          logoImg.style.display = "none";
-          return;
-      }
-      const ext = logoExtensions[i];
-      const testImg = new Image();
-      testImg.onload = function() {
-          logoImg.src = logoBasePath + ext;
-          logoImg.style.display = "inline";
-      };
-      testImg.onerror = function() {
-          tryLogo(i + 1);
-      };
-      testImg.src = logoBasePath + ext;
+    if (i >= logoExtensions.length) {
+      logoImg.alt = "Logo not found";
+      logoImg.style.display = "none";
+      return;
+    }
+    const ext = logoExtensions[i];
+    const testImg = new Image();
+    testImg.onload = function() {
+      logoImg.src = logoBasePath + ext;
+      logoImg.style.display = "inline";
+    };
+    testImg.onerror = function() {
+      tryLogo(i + 1);
+    };
+    testImg.src = logoBasePath + ext;
   })();
-});
+}
 
 function initializeModal() {
   const modal = document.getElementById('product-modal');
@@ -170,6 +297,60 @@ function initializeModal() {
           modal.style.display = 'none';
         };
         
+        // Show quantity selector and add to cart button for products
+        document.querySelector('#product-modal .quantity-selector').style.display = 'flex';
+        document.getElementById('add-to-cart-modal').style.display = 'block';
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+    });
+  });
+  
+  // Add click event to all recipe cards
+  document.querySelectorAll('.recipe-art').forEach(recipeCard => {
+    recipeCard.addEventListener('click', function() {
+      const recipeName = this.querySelector('.gallery-title').textContent;
+      const recipe = recipeData[recipeName];
+      
+      if (recipe) {
+        document.getElementById('modal-image').src = recipe.image;
+        document.getElementById('modal-image').alt = recipeName;
+        document.getElementById('modal-title').textContent = recipeName;
+        document.getElementById('modal-price').textContent = '';
+        document.getElementById('modal-description').textContent = recipe.description;
+        
+        const benefitsList = document.getElementById('modal-benefits');
+        benefitsList.innerHTML = '';
+        recipe.benefits.forEach(benefit => {
+          const li = document.createElement('li');
+          li.textContent = benefit;
+          benefitsList.appendChild(li);
+        });
+        
+        const usageList = document.getElementById('modal-usage');
+        usageList.innerHTML = '<h3>Ingredients</h3>';
+        const ingredientsList = document.createElement('ul');
+        recipe.ingredients.forEach(ingredient => {
+          const li = document.createElement('li');
+          li.textContent = ingredient;
+          ingredientsList.appendChild(li);
+        });
+        usageList.appendChild(ingredientsList);
+        
+        usageList.innerHTML += '<h3>Instructions</h3>';
+        const instructionsList = document.createElement('ol');
+        recipe.instructions.forEach(instruction => {
+          const li = document.createElement('li');
+          li.textContent = instruction;
+          instructionsList.appendChild(li);
+        });
+        usageList.appendChild(instructionsList);
+        
+        // Hide quantity selector and add to cart button for recipes
+        document.querySelector('#product-modal .quantity-selector').style.display = 'none';
+        document.getElementById('add-to-cart-modal').style.display = 'none';
+        
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
       }
@@ -200,10 +381,9 @@ function initializeCart() {
   // Close cart when clicking outside
   document.addEventListener('click', function(event) {
     const cartContainer = document.getElementById('cart-container');
-    if (!cartContainer.contains(event.target) && 
-        event.target.id !== 'cart-icon' && 
-        event.target.id !== 'cart-count') {
-      document.getElementById('cart-dropdown').classList.remove('show');
+    const cartDropdown = document.getElementById('cart-dropdown');
+    if (!cartContainer.contains(event.target)) {
+      cartDropdown.classList.remove('show');
     }
   });
   
@@ -228,34 +408,39 @@ function initializeCart() {
 }
 
 function setupProductQuantity() {
-  // Quantity buttons
+  console.log('Setting up product quantity controls');
+  
+  // Remove any existing listeners first
+  document.querySelectorAll('.quantity-btn, .add-to-cart').forEach(el => {
+    el.replaceWith(el.cloneNode(true));
+  });
+
+  // Quantity adjustment buttons
   document.querySelectorAll('.quantity-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       const input = this.parentElement.querySelector('.quantity-input');
       let value = parseInt(input.value);
-      const step = parseInt(input.step) || 50;
+      const step = parseInt(input.step);
       const min = parseInt(input.min) || 50;
       
-      if (this.classList.contains('minus')) {
-        value = Math.max(min, value - step);
-      } else {
-        value = value + step;
-      }
+      value = this.classList.contains('minus') 
+        ? Math.max(min, value - step) 
+        : value + step;
       
       input.value = value;
     });
   });
   
-  // Add to cart buttons
-  document.querySelectorAll('.add-to-cart').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const product = this.getAttribute('data-product');
-      const price = parseFloat(this.getAttribute('data-price'));
-      const quantityInput = this.parentElement.querySelector('.quantity-input');
-      const quantity = parseInt(quantityInput.value);
+  // Add to cart with event delegation
+  document.body.addEventListener('click', function(e) {
+    if (e.target.classList.contains('add-to-cart')) {
+      const btn = e.target;
+      const product = btn.getAttribute('data-product');
+      const price = parseFloat(btn.getAttribute('data-price'));
+      const quantity = parseInt(btn.parentElement.querySelector('.quantity-input').value);
       
       addToCart(product, quantity, price);
-    });
+    }
   });
 }
 
@@ -273,7 +458,11 @@ function setupCheckout() {
   document.querySelectorAll('.btn-back').forEach(btn => {
     btn.addEventListener('click', function() {
       const currentStep = parseInt(document.querySelector('.step.active').getAttribute('data-step'));
-      showCheckoutStep(currentStep - 1);
+      if (currentStep > 1) {
+        showCheckoutStep(currentStep - 1);
+      } else {
+        document.getElementById('checkout-modal').style.display = 'none';
+      }
     });
   });
 
@@ -295,6 +484,13 @@ function setupCheckout() {
     });
   });
 
+  // UPI Pay button
+  document.getElementById('upi-pay-button').addEventListener('click', function() {
+    const total = calculateOrderTotal();
+    const upiLink = `upi://pay?pa=aishaura.greens@upi&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    window.open(upiLink, '_blank');
+  });
+
   // Place Order button
   document.getElementById('btn-place-order').addEventListener('click', function() {
     submitOrder();
@@ -303,25 +499,34 @@ function setupCheckout() {
   // Close checkout modal
   document.querySelector('#checkout-modal .close-modal').addEventListener('click', function() {
     document.getElementById('checkout-modal').style.display = 'none';
+    document.body.style.overflow = 'auto';
   });
 }
 
 function addToCart(product, quantity, price) {
-  const existingItem = cart.find(item => item.product === product);
+  console.log('Adding to cart:', {product, quantity, price});
   
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    cart.push({
-      product: product,
-      quantity: quantity,
-      price: price
-    });
+  // Validate inputs
+  if (!product || !productData[product]) {
+    console.error('Invalid product:', product);
+    return;
   }
   
+  quantity = Math.max(50, parseInt(quantity) || 50);
+  price = parseFloat(price) || productData[product].price;
+
+  // Update or add item
+  const existingIndex = cart.findIndex(item => item.product === product);
+  if (existingIndex >= 0) {
+    cart[existingIndex].quantity = quantity;
+  } else {
+    cart.push({ product, quantity, price });
+  }
+  
+  // Persist and update UI
   localStorage.setItem('microgreensCart', JSON.stringify(cart));
   updateCartDisplay();
-  showCartNotification(`${product} added to cart`);
+  showCartNotification(`${quantity}g of ${product} added to cart`);
 }
 
 function removeFromCart(index) {
@@ -354,17 +559,15 @@ function updateCartDisplay() {
   const cartDelivery = document.getElementById('cart-delivery');
   const cartTotal = document.getElementById('cart-total');
   
-  // Update cart count
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  cartCount.textContent = cart.reduce((sum, item) => sum + (item.quantity / 50), 0);
+  // Update cart count to show total number of items (not grams)
+  cartCount.textContent = cart.length;
   
-  // Update cart items
   cartItems.innerHTML = '';
   
   if (cart.length === 0) {
     cartItems.innerHTML = '<p style="text-align:center; color:#666;">Your cart is empty</p>';
     cartSubtotal.textContent = '₹0';
-    cartDelivery.textContent = '₹0';
+    cartDelivery.textContent = 'FREE';
     cartTotal.textContent = 'Total: ₹0';
     return;
   }
@@ -375,50 +578,29 @@ function updateCartDisplay() {
     const itemElement = document.createElement('div');
     itemElement.className = 'cart-item';
     
-    // Calculate item price
+    // Calculate price based on exact quantity
     const itemPrice = (item.quantity / 50) * item.price;
     subtotal += itemPrice;
     
     itemElement.innerHTML = `
       <div class="cart-item-info">
         <h4>${item.product}</h4>
-        <div>${item.quantity}g (₹${item.price}/50g)</div>
+        <div>${item.quantity}g @ ₹${item.price}/50g</div>
+        <div class="item-total">₹${itemPrice.toFixed(2)}</div>
       </div>
-      <div class="cart-item-controls">
-        <button class="decrease-item" data-index="${index}">-</button>
-        <span>${item.quantity}g</span>
-        <button class="increase-item" data-index="${index}">+</button>
-        <button class="remove-item" data-index="${index}">×</button>
-      </div>
+      <button class="remove-item" data-index="${index}">×</button>
     `;
     
     cartItems.appendChild(itemElement);
   });
   
-  // Calculate delivery fee
-  const deliveryFee = calculateDeliveryFee(subtotal);
-  const total = subtotal + deliveryFee;
+  const total = subtotal;
   
-  // Update summary
   cartSubtotal.textContent = `₹${subtotal.toFixed(2)}`;
-  cartDelivery.textContent = deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`;
+  cartDelivery.textContent = 'FREE';
   cartTotal.innerHTML = `<span>Total:</span> <span>₹${total.toFixed(2)}</span>`;
   
-  // Add event listeners to the new buttons
-  document.querySelectorAll('.decrease-item').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const index = parseInt(this.getAttribute('data-index'));
-      updateItemQuantity(index, cart[index].quantity - 50);
-    });
-  });
-  
-  document.querySelectorAll('.increase-item').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const index = parseInt(this.getAttribute('data-index'));
-      updateItemQuantity(index, cart[index].quantity + 50);
-    });
-  });
-  
+  // Add event listeners to remove buttons
   document.querySelectorAll('.remove-item').forEach(btn => {
     btn.addEventListener('click', function() {
       const index = parseInt(this.getAttribute('data-index'));
@@ -427,9 +609,19 @@ function updateCartDisplay() {
   });
 }
 
-function calculateDeliveryFee(subtotal) {
-  // Free delivery for orders over ₹500
-  return subtotal > 500 ? 0 : 50;
+function calculateDeliveryFee() {
+  return 0; // Free delivery for all orders
+}
+
+function calculateOrderTotal() {
+  console.log('Calculating order total from cart:', cart);
+  const subtotal = cart.reduce((total, item) => {
+    const itemTotal = (item.quantity / 50) * item.price;
+    console.log(`Calculating: ${item.product} - ${item.quantity}g @ ₹${item.price} = ₹${itemTotal}`);
+    return total + itemTotal;
+  }, 0);
+  console.log('Final subtotal:', subtotal);
+  return subtotal;
 }
 
 function showCartNotification(message) {
@@ -452,6 +644,7 @@ function showCartNotification(message) {
 
 function showCheckoutModal() {
   document.getElementById('checkout-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
   showCheckoutStep(1);
 }
 
@@ -476,6 +669,45 @@ function showCheckoutStep(step) {
   if (step === 1) {
     updateCheckoutItems();
   }
+  
+  // Generate QR code for payment step
+  if (step === 3) {
+    const total = calculateOrderTotal();
+    const qrData = `upi://pay?pa=aishaura.greens@upi&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    
+    // Clear previous QR code
+    const qrContainer = document.getElementById('upi-qr-code');
+    qrContainer.innerHTML = '';
+    
+    // Add a small delay to ensure element is visible and ready
+    setTimeout(() => {
+      try {
+        // Verify the container exists and is visible
+        if (qrContainer && qrContainer.offsetParent !== null) {
+          new QRCode(qrContainer, {
+            text: qrData,
+            width: 150,
+            height: 150,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        } else {
+          console.error('QR code container not visible');
+        }
+      } catch (error) {
+        console.error('QR code generation failed:', error);
+        // Fallback - show UPI ID prominently
+        qrContainer.innerHTML = `
+          <div style="text-align:center; padding:20px;">
+            <p>Please send payment to:</p>
+            <p style="font-weight:bold; font-size:1.2rem;">aishaura.greens@upi</p>
+            <p>Amount: ₹${total.toFixed(2)}</p>
+          </div>
+        `;
+      }
+    }, 100);
+  }
 }
 
 function updateCheckoutItems() {
@@ -499,11 +731,10 @@ function updateCheckoutItems() {
     itemsContainer.appendChild(itemElement);
   });
   
-  const deliveryFee = subtotal > 500 ? 0 : 50;
-  const total = subtotal + deliveryFee;
+  const total = subtotal;
   
   document.getElementById('checkout-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-  document.getElementById('checkout-delivery').textContent = deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`;
+  document.getElementById('checkout-delivery').textContent = 'FREE';
   document.getElementById('checkout-total').textContent = `₹${total.toFixed(2)}`;
 }
 
@@ -511,22 +742,16 @@ function updatePaymentSummary() {
   const container = document.getElementById('payment-order-items');
   container.innerHTML = '';
   
-  cart.forEach(item => {
-    const itemElement = document.createElement('div');
-    itemElement.className = 'order-item';
+  const total = cart.reduce((sum, item) => {
     const itemPrice = (item.quantity / 50) * item.price;
-    
-    itemElement.innerHTML = `
-      <div class="order-item-name">${item.product} (${item.quantity}g)</div>
-      <div class="order-item-price">₹${itemPrice.toFixed(2)}</div>
+    container.innerHTML += `
+      <div class="order-item">
+        <div class="order-item-name">${item.product} (${item.quantity}g)</div>
+        <div class="order-item-price">₹${itemPrice.toFixed(2)}</div>
+      </div>
     `;
-    
-    container.appendChild(itemElement);
-  });
-  
-  const subtotal = cart.reduce((sum, item) => sum + (item.quantity / 50) * item.price, 0);
-  const deliveryFee = subtotal > 500 ? 0 : 50;
-  const total = subtotal + deliveryFee;
+    return sum + itemPrice;
+  }, 0);
   
   document.getElementById('payment-total').textContent = `₹${total.toFixed(2)}`;
 }
@@ -564,9 +789,7 @@ async function submitOrder() {
   const paymentMethod = document.querySelector('.payment-option.active').getAttribute('data-method');
   
   // Calculate total
-  const subtotal = cart.reduce((sum, item) => sum + (item.quantity / 50) * item.price, 0);
-  const deliveryFee = subtotal > 500 ? 0 : 50;
-  const total = subtotal + deliveryFee;
+  const total = calculateOrderTotal();
   
   try {
     const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -636,7 +859,7 @@ function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, ad
     
     if (paymentMethod === 'upi') {
       message += `\nPlease complete your UPI payment to:\n`;
-      message += `UPI ID: your.upi.id@bank\n\n`;
+      message += `UPI ID: aishaura.greens@upi\n\n`;
       message += `We'll process your order once payment is confirmed.`;
     } else {
       message += `\nWe'll process your order shortly. Please keep cash ready for delivery.`;
