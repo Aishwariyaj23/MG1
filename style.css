@@ -948,3 +948,32 @@ h2 {
 .remove-item:hover {
   background: #ff4757;
 }
+.upi-fallback {
+  text-align: center;
+  padding: 15px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.upi-id {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #2e7d32;
+  margin: 10px 0;
+}
+
+#manual-upi-pay {
+  background: #25D366;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+#manual-upi-pay:hover {
+  background: #1da851;
+}

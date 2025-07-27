@@ -1,14 +1,25 @@
-// QR Code library check
-if (typeof QRCode === 'undefined') {
+// QR Code library handling with robust loading
+let qrCodeLoaded = typeof QRCode !== 'undefined';
+
+if (!qrCodeLoaded) {
   console.log('QRCode library not loaded - loading dynamically');
   const script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js';
+  script.onload = () => {
+    qrCodeLoaded = true;
+    console.log('QRCode library successfully loaded');
+  };
+  script.onerror = () => {
+    console.error('Failed to load QRCode library');
+  };
   document.head.appendChild(script);
 }
 
+
 // Debug initialization
 console.log('Initializing microgreens application');
-console.log('Initial cart from localStorage:', JSON.parse(localStorage.getItem('microgreensCart')));
+const storedCart = localStorage.getItem('microgreensCart');
+console.log('Initial cart from localStorage:', storedCart ? JSON.parse(storedCart) : []);
 
 // Product data with 15% increased prices
 const productData = {
@@ -215,7 +226,6 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('DOM fully loaded - initializing application');
   
   // Initialize cart from localStorage or empty array
-  const storedCart = localStorage.getItem('microgreensCart');
   cart = storedCart ? JSON.parse(storedCart) : [];
   console.log('Cart initialized with:', cart);
   
@@ -224,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
   setupProductQuantity();
   setupCheckout();
   
-  // Dynamic logo loading
   loadLogo();
 });
 
@@ -259,7 +268,6 @@ function initializeModal() {
   // Add click event to all product cards
   document.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', function(e) {
-      // Don't open modal if clicking on quantity controls or add to cart button
       if (e.target.closest('.quantity-selector') || e.target.closest('.add-to-cart')) {
         return;
       }
@@ -290,14 +298,12 @@ function initializeModal() {
           usageList.appendChild(li);
         });
         
-        // Set up add to cart button in modal
         document.getElementById('add-to-cart-modal').onclick = function() {
           const quantity = parseInt(document.querySelector('#product-modal .quantity-input').value);
           addToCart(productName, quantity, product.price);
           modal.style.display = 'none';
         };
         
-        // Show quantity selector and add to cart button for products
         document.querySelector('#product-modal .quantity-selector').style.display = 'flex';
         document.getElementById('add-to-cart-modal').style.display = 'block';
         
@@ -347,7 +353,6 @@ function initializeModal() {
         });
         usageList.appendChild(instructionsList);
         
-        // Hide quantity selector and add to cart button for recipes
         document.querySelector('#product-modal .quantity-selector').style.display = 'none';
         document.getElementById('add-to-cart-modal').style.display = 'none';
         
@@ -357,13 +362,11 @@ function initializeModal() {
     });
   });
   
-  // Close modal when clicking X
   closeBtn.addEventListener('click', function() {
     modal.style.display = 'none';
     document.body.style.overflow = 'auto';
   });
   
-  // Close modal when clicking outside
   window.addEventListener('click', function(event) {
     if (event.target === modal) {
       modal.style.display = 'none';
@@ -373,12 +376,10 @@ function initializeModal() {
 }
 
 function initializeCart() {
-  // Cart toggle functionality
   document.getElementById('cart-icon').addEventListener('click', function() {
     document.getElementById('cart-dropdown').classList.toggle('show');
   });
   
-  // Close cart when clicking outside
   document.addEventListener('click', function(event) {
     const cartContainer = document.getElementById('cart-container');
     const cartDropdown = document.getElementById('cart-dropdown');
@@ -387,16 +388,13 @@ function initializeCart() {
     }
   });
   
-  // Clear cart button
   document.getElementById('clear-cart').addEventListener('click', clearCart);
   
-  // View cart button
   document.getElementById('view-cart').addEventListener('click', function() {
     showCheckoutModal();
     document.getElementById('cart-dropdown').classList.remove('show');
   });
   
-  // Checkout button
   document.getElementById('checkout-btn').addEventListener('click', function() {
     if (cart.length === 0) {
       alert('Your cart is empty!');
@@ -410,12 +408,10 @@ function initializeCart() {
 function setupProductQuantity() {
   console.log('Setting up product quantity controls');
   
-  // Remove any existing listeners first
   document.querySelectorAll('.quantity-btn, .add-to-cart').forEach(el => {
     el.replaceWith(el.cloneNode(true));
   });
 
-  // Quantity adjustment buttons
   document.querySelectorAll('.quantity-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       const input = this.parentElement.querySelector('.quantity-input');
@@ -431,7 +427,6 @@ function setupProductQuantity() {
     });
   });
   
-  // Add to cart with event delegation
   document.body.addEventListener('click', function(e) {
     if (e.target.classList.contains('add-to-cart')) {
       const btn = e.target;
@@ -445,7 +440,6 @@ function setupProductQuantity() {
 }
 
 function setupCheckout() {
-  // Continue button
   document.getElementById('btn-continue').addEventListener('click', function() {
     if (cart.length === 0) {
       alert('Your cart is empty!');
@@ -454,7 +448,6 @@ function setupCheckout() {
     showCheckoutStep(2);
   });
 
-  // Back buttons
   document.querySelectorAll('.btn-back').forEach(btn => {
     btn.addEventListener('click', function() {
       const currentStep = parseInt(document.querySelector('.step.active').getAttribute('data-step'));
@@ -466,7 +459,6 @@ function setupCheckout() {
     });
   });
 
-  // To Payment button
   document.getElementById('btn-to-payment').addEventListener('click', function() {
     if (validateCustomerInfo()) {
       showCheckoutStep(3);
@@ -474,7 +466,6 @@ function setupCheckout() {
     }
   });
 
-  // Payment method selection
   document.querySelectorAll('.payment-option').forEach(option => {
     option.addEventListener('click', function() {
       document.querySelectorAll('.payment-option').forEach(opt => {
@@ -484,19 +475,16 @@ function setupCheckout() {
     });
   });
 
-  // UPI Pay button
   document.getElementById('upi-pay-button').addEventListener('click', function() {
     const total = calculateOrderTotal();
     const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
     window.open(upiLink, '_blank');
   });
 
-  // Place Order button
   document.getElementById('btn-place-order').addEventListener('click', function() {
     submitOrder();
   });
 
-  // Close checkout modal
   document.querySelector('#checkout-modal .close-modal').addEventListener('click', function() {
     document.getElementById('checkout-modal').style.display = 'none';
     document.body.style.overflow = 'auto';
@@ -506,7 +494,6 @@ function setupCheckout() {
 function addToCart(product, quantity, price) {
   console.log('Adding to cart:', {product, quantity, price});
   
-  // Validate inputs
   if (!product || !productData[product]) {
     console.error('Invalid product:', product);
     return;
@@ -515,7 +502,6 @@ function addToCart(product, quantity, price) {
   quantity = Math.max(50, parseInt(quantity) || 50);
   price = parseFloat(price) || productData[product].price;
 
-  // Update or add item
   const existingIndex = cart.findIndex(item => item.product === product);
   if (existingIndex >= 0) {
     cart[existingIndex].quantity = quantity;
@@ -523,7 +509,6 @@ function addToCart(product, quantity, price) {
     cart.push({ product, quantity, price });
   }
   
-  // Persist and update UI
   localStorage.setItem('microgreensCart', JSON.stringify(cart));
   updateCartDisplay();
   showCartNotification(`${quantity}g of ${product} added to cart`);
@@ -547,8 +532,6 @@ function clearCart() {
   cart = [];
   localStorage.removeItem('microgreensCart');
   updateCartDisplay();
-  
-  // Close cart dropdown if open
   document.getElementById('cart-dropdown').classList.remove('show');
 }
 
@@ -559,9 +542,7 @@ function updateCartDisplay() {
   const cartDelivery = document.getElementById('cart-delivery');
   const cartTotal = document.getElementById('cart-total');
   
-  // Update cart count to show total number of items (not grams)
   cartCount.textContent = cart.length;
-  
   cartItems.innerHTML = '';
   
   if (cart.length === 0) {
@@ -578,7 +559,6 @@ function updateCartDisplay() {
     const itemElement = document.createElement('div');
     itemElement.className = 'cart-item';
     
-    // Calculate price based on exact quantity
     const itemPrice = (item.quantity / 50) * item.price;
     subtotal += itemPrice;
     
@@ -600,7 +580,6 @@ function updateCartDisplay() {
   cartDelivery.textContent = 'FREE';
   cartTotal.innerHTML = `<span>Total:</span> <span>₹${total.toFixed(2)}</span>`;
   
-  // Add event listeners to remove buttons
   document.querySelectorAll('.remove-item').forEach(btn => {
     btn.addEventListener('click', function() {
       const index = parseInt(this.getAttribute('data-index'));
@@ -610,7 +589,7 @@ function updateCartDisplay() {
 }
 
 function calculateDeliveryFee() {
-  return 0; // Free delivery for all orders
+  return 0;
 }
 
 function calculateOrderTotal() {
@@ -665,50 +644,57 @@ function showCheckoutStep(step) {
   });
   document.getElementById(`step-${step}`).style.display = 'block';
 
-  // Update content for step 1
   if (step === 1) {
     updateCheckoutItems();
   }
   
-  // Generate QR code for payment step
   if (step === 3) {
-    const total = calculateOrderTotal();
-    const qrData = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
-    
-    // Clear previous QR code
-    const qrContainer = document.getElementById('upi-qr-code');
-    qrContainer.innerHTML = '';
-    
-    // Add a small delay to ensure element is visible and ready
-    setTimeout(() => {
-      try {
-        // Verify the container exists and is visible
-        if (qrContainer && qrContainer.offsetParent !== null) {
-          new QRCode(qrContainer, {
-            text: qrData,
-            width: 150,
-            height: 150,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-          });
-        } else {
-          console.error('QR code container not visible');
-        }
-      } catch (error) {
-        console.error('QR code generation failed:', error);
-        // Fallback - show UPI ID prominently
-        qrContainer.innerHTML = `
-          <div style="text-align:center; padding:20px;">
-            <p>Please send payment to:</p>
-            <p style="font-weight:bold; font-size:1.2rem;">shashi.shashi7271@ybl</p>
-            <p>Amount: ₹${total.toFixed(2)}</p>
-          </div>
-        `;
-      }
-    }, 100);
+    generatePaymentQRCode();
   }
 }
+
+function generatePaymentQRCode() {
+  const total = calculateOrderTotal();
+  const qrContainer = document.getElementById('upi-qr-code');
+  qrContainer.innerHTML = '';
+
+  // Always show the fallback first
+  showQRCodeFallback(qrContainer, total);
+
+  // Then try to generate QR code if library is available
+  if (qrCodeLoaded && typeof QRCode !== 'undefined') {
+    try {
+      const qrData = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+      new QRCode(qrContainer, {
+        text: qrData,
+        width: 150,
+        height: 150,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } catch (error) {
+      console.error('QR code generation failed:', error);
+    }
+  }
+}
+
+function showQRCodeFallback(qrContainer, total) {
+  qrContainer.innerHTML = `
+    <div class="upi-fallback">
+      <p>Please send payment to:</p>
+      <p class="upi-id">shashi.shashi7271@ybl</p>
+      <p>Amount: ₹${total.toFixed(2)}</p>
+      <button id="manual-upi-pay" class="upi-pay-button">Pay with UPI App</button>
+    </div>
+  `;
+  
+  document.getElementById('manual-upi-pay').addEventListener('click', function() {
+    const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total}&cu=INR&tn=Microgreens%20Order`;
+    window.open(upiLink, '_blank');
+  });
+}
+
 
 function updateCheckoutItems() {
   const itemsContainer = document.getElementById('checkout-items');
@@ -781,44 +767,112 @@ function validateCustomerInfo() {
 }
 
 async function submitOrder() {
-  // ... existing code ...
+  // Collect all required data
+  const name = document.getElementById('customer-name').value.trim();
+  const phone = document.getElementById('customer-phone').value.trim();
+  const email = document.getElementById('customer-email').value.trim();
+  const address = document.getElementById('customer-address').value.trim();
+  const notes = document.getElementById('customer-notes').value.trim();
+  const paymentMethod = document.querySelector('.payment-option.active').getAttribute('data-method');
+  const total = calculateOrderTotal();
+
+  // Validate data
+  if (!validateCustomerInfo()) return;
+
+  // Prepare order data
+  const orderData = {
+    name: name,
+    contact: phone,
+    email: email,
+    products: JSON.stringify(cart),
+    total: total.toFixed(2),
+    address: address,
+    notes: notes,
+    payment_method: paymentMethod,
+    status: paymentMethod === 'cod' ? 'Pending Payment' : 'Pending',
+    sendEmail: 'yes',
+    timestamp: new Date().toISOString()
+  };
+
+  console.log('Submitting order:', orderData);
+
+  const submitBtn = document.getElementById('btn-place-order');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Processing...';
 
   try {
-    // First, make a HEAD request to get the final URL
-    const headResponse = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'HEAD',
-      redirect: 'follow'
-    });
-    
-    // Get the final URL after all redirects
-    const finalUrl = headResponse.url;
-    
-    // Now make the POST request to the final URL
-    const response = await fetch(finalUrl, {
+    // For local development, use a proxy to avoid CORS issues
+    const useProxy = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    const submissionUrl = useProxy 
+      ? `https://cors-anywhere.herokuapp.com/${GOOGLE_SCRIPT_URL}`
+      : GOOGLE_SCRIPT_URL;
+
+    const response = await fetch(submissionUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest' // Needed for some CORS proxies
       },
-      body: new URLSearchParams({
-        name: name,
-        contact: phone,
-        email: email,
-        products: JSON.stringify(cart),
-        total: total,
-        address: address,
-        notes: notes,
-        payment_method: paymentMethod,
-        status: paymentMethod === 'cod' ? 'Pending Payment' : 'Pending',
-        sendEmail: 'yes'
-      }),
-      redirect: 'follow' // Important to follow redirects
+      body: new URLSearchParams(orderData)
     });
 
-    const data = await response.json();
-    // ... rest of your success handling ...
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Order submission result:', result);
+
+    if (result.status !== 'success') {
+      throw new Error(result.message || 'Unknown error occurred');
+    }
+
+    // Show success
+    document.getElementById('confirmation-id').textContent = `#${result.orderId}`;
+    document.getElementById('confirmation-total').textContent = `₹${total.toFixed(2)}`;
+    showCheckoutStep(4);
+    
+    // Send WhatsApp confirmation
+    sendWhatsAppConfirmation(name, phone, result.orderId, total, paymentMethod, address, notes);
+    
+    // Clear cart
+    clearCart();
   } catch (error) {
-    console.error('Error:', error);
-    alert('Order submission failed. Please try again or contact us directly.');
+    console.error('Order submission failed:', error);
+    
+    // Fallback submission method using form
+    function submitOrderViaFormFallback(orderData) {
+  // Create a hidden form
+  const form = document.createElement('form');
+  form.style.display = 'none';
+  form.method = 'POST';
+  form.action = GOOGLE_SCRIPT_URL;
+  form.target = '_blank'; // Open in new tab to avoid navigation
+
+  // Add all data as hidden inputs
+  for (const key in orderData) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = orderData[key];
+    form.appendChild(input);
+  }
+
+  document.body.appendChild(form);
+  form.submit();
+  
+  // Show message to user
+  alert('Order is being processed in a new tab. Please keep this page open until completion.');
+}
+    // if (error.message.includes('CORS') || error.message.includes('403')) {
+    //   console.log('Attempting fallback submission method');
+    //   submitOrderViaFormFallback(orderData);
+    // } else {
+    //   alert(`Order submission failed. Please try again or contact us at 9738560719.\nError: ${error.message}`);
+    // }
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Place Order';
   }
 }
 
@@ -831,7 +885,6 @@ function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, ad
     message += `📦 *Order Confirmation:*\n`;
     message += `🆔 Order ID: #${orderId}\n`;
     
-    // Add cart items
     cart.forEach(item => {
       message += `🌱 ${item.product}: ${item.quantity}g (₹${item.price}/50g)\n`;
     });
