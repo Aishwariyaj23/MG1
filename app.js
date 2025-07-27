@@ -801,23 +801,13 @@ async function submitOrder() {
   submitBtn.textContent = 'Processing...';
 
   try {
-    // For local development, use a proxy to avoid CORS issues
-    const useProxy = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-    const submissionUrl = useProxy 
-      ? `https://cors-anywhere.herokuapp.com/${GOOGLE_SCRIPT_URL}`
-      : GOOGLE_SCRIPT_URL;
-
-    const response = await fetch(submissionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Requested-With': 'XMLHttpRequest' // Needed for some CORS proxies
-      },
-      body: new URLSearchParams(orderData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Solution 1: Try direct POST first
+    let response = await submitOrderDirect(orderData);
+    
+    // If we get a 403, try Solution 2: JSONP approach
+    if (response.status === 403) {
+      console.log('Direct POST failed, trying JSONP approach');
+      response = await submitOrderJsonp(orderData);
     }
 
     const result = await response.json();
@@ -840,16 +830,88 @@ async function submitOrder() {
   } catch (error) {
     console.error('Order submission failed:', error);
     
-    // Fallback submission method using form
-    function submitOrderViaFormFallback(orderData) {
-  // Create a hidden form
+    // Final fallback - use form submission
+    if (error.message.includes('403') || error.message.includes('CORS')) {
+      console.log('Attempting form submission fallback');
+      submitOrderViaFormFallback(orderData);
+    } else {
+      alert(`Order submission failed. Please try again or contact us at 9738560719.\nError: ${error.message}`);
+    }
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Place Order';
+  }
+}
+// Solution 1: Direct POST with CORS proxy
+async function submitOrderDirect(orderData) {
+  const useProxy = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+  const submissionUrl = useProxy 
+    ? `https://cors-anywhere.herokuapp.com/${GOOGLE_SCRIPT_URL}`
+    : GOOGLE_SCRIPT_URL;
+
+  const response = await fetch(submissionUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: new URLSearchParams(orderData)
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response;
+}
+
+// Solution 2: JSONP approach for Google Apps Script
+function submitOrderJsonp(orderData) {
+  return new Promise((resolve, reject) => {
+    // Create a callback function name
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    
+    // Add callback to window
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      
+      // Create a mock response object
+      resolve({
+        json: () => Promise.resolve(data),
+        status: 200
+      });
+    };
+
+    // Add parameters to the URL
+    const params = new URLSearchParams();
+    params.append('callback', callbackName);
+    for (const key in orderData) {
+      params.append(key, orderData[key]);
+    }
+
+    // Create script tag
+    const script = document.createElement('script');
+    script.src = `${GOOGLE_SCRIPT_URL}?${params.toString()}`;
+    
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error('JSONP request failed'));
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+// Solution 3: Form submission fallback
+function submitOrderViaFormFallback(orderData) {
   const form = document.createElement('form');
   form.style.display = 'none';
   form.method = 'POST';
   form.action = GOOGLE_SCRIPT_URL;
-  form.target = '_blank'; // Open in new tab to avoid navigation
+  form.target = '_blank';
 
-  // Add all data as hidden inputs
   for (const key in orderData) {
     const input = document.createElement('input');
     input.type = 'hidden';
@@ -861,19 +923,15 @@ async function submitOrder() {
   document.body.appendChild(form);
   form.submit();
   
-  // Show message to user
-  alert('Order is being processed in a new tab. Please keep this page open until completion.');
-}
-    // if (error.message.includes('CORS') || error.message.includes('403')) {
-    //   console.log('Attempting fallback submission method');
-    //   submitOrderViaFormFallback(orderData);
-    // } else {
-    //   alert(`Order submission failed. Please try again or contact us at 9738560719.\nError: ${error.message}`);
-    // }
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Place Order';
-  }
+  // Show success message since we can't get response programmatically
+  document.getElementById('confirmation-id').textContent = '#PENDING';
+  document.getElementById('confirmation-total').textContent = `₹${orderData.total}`;
+  showCheckoutStep(4);
+  
+  // Clear cart
+  clearCart();
+  
+  alert('Order submitted successfully via fallback method! Please check your email for confirmation.');
 }
 
 function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, address, notes) {
