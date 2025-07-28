@@ -936,42 +936,42 @@ function showOrderConfirmation(orderId, total) {
     showCheckoutStep(4);
 }
 // ========== WHATSAPP CONFIRMATION ========== //
-function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, address, notes) {
-    const cleanedPhone = phone.replace(/\D/g, '');
-    // Ensure the number starts with 91 for India, or add it if missing
-    const whatsappNumber = cleanedPhone.startsWith('91') ? cleanedPhone : `91${cleanedPhone}`;
+// function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, address, notes) {
+//     const cleanedPhone = phone.replace(/\D/g, '');
+//     // Ensure the number starts with 91 for India, or add it if missing
+//     const whatsappNumber = cleanedPhone.startsWith('91') ? cleanedPhone : `91${cleanedPhone}`;
 
-    if (whatsappNumber.length >= 10) { // Should be at least 10 digits after cleaning, 12 with 91
-        let message = `Namaskara ${name}! Thank you for your order with Aishaura Microgreens.\n\n`;
-        message += `📦 *Order Confirmation:*\n`;
-        message += `🆔 Order ID: #${orderId}\n`;
+//     if (whatsappNumber.length >= 10) { // Should be at least 10 digits after cleaning, 12 with 91
+//         let message = `Namaskara ${name}! Thank you for your order with Aishaura Microgreens.\n\n`;
+//         message += `📦 *Order Confirmation:*\n`;
+//         message += `🆔 Order ID: #${orderId}\n`;
 
-        cart.forEach(item => {
-            message += `🌱 ${item.product}: ${item.quantity}g (₹${item.price}/50g)\n`;
-        });
+//         cart.forEach(item => {
+//             message += `🌱 ${item.product}: ${item.quantity}g (₹${item.price}/50g)\n`;
+//         });
 
-        message += `\n💰 *Order Total:* ₹${total.toFixed(2)}\n`;
-        message += `💳 *Payment Method:* ${paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery'}\n`;
-        message += `🏠 *Delivery Address:* ${address}\n`;
+//         message += `\n💰 *Order Total:* ₹${total.toFixed(2)}\n`;
+//         message += `💳 *Payment Method:* ${paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery'}\n`;
+//         message += `🏠 *Delivery Address:* ${address}\n`;
 
-        if (notes) {
-            message += `📝 *Special Instructions:* ${notes}\n`;
-        }
+//         if (notes) {
+//             message += `📝 *Special Instructions:* ${notes}\n`;
+//         }
 
-        if (paymentMethod === 'upi') {
-            message += `\n*Please complete your UPI payment to:*\n`;
-            message += `UPI ID: shashi.shashi7271@ybl\n`;
-            message += `Amount: ₹${total.toFixed(2)}\n\n`;
-            message += `We'll process your order once payment is confirmed.`;
-        } else {
-            message += `\nWe'll process your order shortly. Please keep cash ready for delivery.`;
-        }
+//         if (paymentMethod === 'upi') {
+//             message += `\n*Please complete your UPI payment to:*\n`;
+//             message += `UPI ID: shashi.shashi7271@ybl\n`;
+//             message += `Amount: ₹${total.toFixed(2)}\n\n`;
+//             message += `We'll process your order once payment is confirmed.`;
+//         } else {
+//             message += `\nWe'll process your order shortly. Please keep cash ready for delivery.`;
+//         }
 
-        message += `\n\nThank you for choosing Aishaura Microgreens!`;
+//         message += `\n\nThank you for choosing Aishaura Microgreens!`;
 
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-    } else {
-        console.warn('Invalid phone number for WhatsApp:', phone);
-    }
-}
+//         const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+//         window.open(whatsappUrl, '_blank');
+//     } else {
+//         console.warn('Invalid phone number for WhatsApp:', phone);
+//     }
+// }
