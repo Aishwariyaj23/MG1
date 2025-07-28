@@ -222,7 +222,7 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqXsGVNYqX3UQoZLVIYcW9i4zI2No0OCV3JmYc0yEhlN0lhoj8w4bdaX_-Y3ZiRu9N6Q/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznJRKsN9oCOdFGQ8P5Mpuetr5SDrlVs_Wm4CEWjdOrUKRtfFObDLjpp6MMjQ68AM5v/exec";
 
 // Cart functionality
 let cart = [];
@@ -629,7 +629,7 @@ function showCheckoutStep(step) {
 function setupCheckout() {
     document.getElementById('btn-continue').addEventListener('click', function() {
         if (cart.length === 0) {
-            alert('Your cart is empty!');
+            alert('Your cart is empty. Please add items before placing an order.');
             return;
         }
         showCheckoutStep(2); // Go to Customer Info step
@@ -671,7 +671,7 @@ function setupCheckout() {
     document.getElementById('upi-pay-button').addEventListener('click', function() {
         const total = calculateOrderTotal();
         const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-        window.open(upiLink, '_blank');
+        //window.open(upiLink, '_blank');
     });
 
     document.getElementById('btn-place-order').addEventListener('click', submitOrder);
@@ -725,7 +725,7 @@ function showQRCodeFallback(qrContainer, total) {
 
     document.getElementById('manual-upi-pay').addEventListener('click', function() {
         const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-        window.open(upiLink, '_blank');
+      //  window.open(upiLink, '_blank');
     });
 }
 
@@ -815,24 +815,16 @@ async function submitOrder() {
 
     // Validate inputs
     if (!validateCustomerInfo()) return;
-    if (!paymentMethod) {
-        alert('Please select a payment method.');
-        return;
-    }
-    if (cart.length === 0) {
-        alert('Your cart is empty. Please add items before placing an order.');
-        return;
-    }
 
     // Prepare order data
     const orderData = {
-        name,
+        name: name,
         contact: phone,
-        email,
-        product: cart.map(item => `${item.product} (${item.quantity}g)`).join('; '),
-        quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g Total',
-        address,
-        notes,
+        email: email,
+        product: cart.map(item => `${item.product} (${item.quantity}g)`).join(', '),
+        quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g',
+        address: address,
+        notes: notes,
         payment_method: paymentMethod,
         status: paymentMethod === 'upi' ? 'Pending UPI Payment' : 'Pending COD',
         sendEmail: 'yes'
@@ -842,10 +834,9 @@ async function submitOrder() {
 
     // UI Loading State
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Processing...';
+    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
 
     try {
-        // Attempt direct POST first
         const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -862,19 +853,12 @@ async function submitOrder() {
 
         // Success handling
         showOrderConfirmation(result.orderId, total);
-        sendWhatsAppConfirmation(name, phone, result.orderId, total, paymentMethod, address, notes);
         clearCart();
-        alert('Order submitted successfully! You will receive confirmation details shortly.');
+        alert('Order submitted successfully! Order ID: ' + result.orderId);
 
     } catch (error) {
         console.error('Submission error:', error);
-        
-        // Fallback to form submission
-        submitOrderViaFormFallback(orderData);
-        showOrderConfirmation('PENDING', total);
-        clearCart();
-        alert('Order submitted via fallback method! You will receive confirmation details shortly.');
-        
+        alert('Failed to submit order. Please try again or contact us directly.');
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Place Order';
@@ -887,8 +871,7 @@ function submitOrderViaFormFallback(orderData) {
     form.style.display = 'none';
     form.method = 'POST';
     form.action = GOOGLE_SCRIPT_URL;
-    form.target = '_blank';
-
+    
     for (const [key, value] of Object.entries(orderData)) {
         const input = document.createElement('input');
         input.type = 'hidden';
@@ -914,7 +897,7 @@ function submitOrderViaFormFallback(orderData) {
     form.style.display = 'none';
     form.method = 'POST';
     form.action = GOOGLE_SCRIPT_URL;
-    form.target = '_blank';
+   // form.target = '_blank';
 
     for (const [key, value] of Object.entries(orderData)) {
         const input = document.createElement('input');
