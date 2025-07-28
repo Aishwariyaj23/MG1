@@ -32,7 +32,7 @@ console.log('Initial cart from localStorage:', storedCart ? JSON.parse(storedCar
 const productData = {
     "Sunflower Microgreens": {
         image: "images/sunflower.jpg",
-        price: 69,
+        price: 80,
         description: "Sunflower microgreens are packed with nutrients and have a delightful crunchy texture.",
         benefits: [
             "High in protein for energy and muscle repair",
@@ -49,7 +49,7 @@ const productData = {
     },
     "Radish Microgreens": {
         image: "images/radish.jpg",
-        price: 63,
+        price: 80,
         description: "Spicy radish microgreens add a kick to any dish while providing powerful nutrients.",
         benefits: [
             "High in vitamin C for immune support",
@@ -66,7 +66,7 @@ const productData = {
     },
     "Mustard Microgreens": {
         image: "images/mustard.png",
-        price: 58,
+        price: 75,
         description: "Mustard microgreens bring bold flavor and impressive health benefits.",
         benefits: [
             "Rich in Vitamin K for bone health",
@@ -83,7 +83,7 @@ const productData = {
     },
     "Wheat Grass": {
         image: "images/wheat-grass.jpg",
-        price: 75,
+        price: 100,
         description: "Wheat grass is a nutrient-packed superfood known for its high chlorophyll content and detoxifying properties.",
         benefits: [
             "Rich in chlorophyll which supports blood health",
@@ -100,7 +100,7 @@ const productData = {
     },
     "Mixed Microgreens": {
         image: "images/mixed.jpg",
-        price: 69,
+        price: 80,
         description: "Our mixed microgreens provide a variety of flavors and nutrients in one convenient package.",
         benefits: [
             "Provides diverse range of nutrients",
