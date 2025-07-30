@@ -834,7 +834,7 @@ async function submitOrder() {
 
     // UI Loading State
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
+    submitBtn.innerHTML = '<img src="loader.gif" width="20" style="vertical-align:middle;"> Processing...';
 
     try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
