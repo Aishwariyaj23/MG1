@@ -832,10 +832,10 @@ async function submitOrder() {
 
     console.log('Submitting order:', orderData);
 
-    // UI Loading State
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<img src="loader.gif" width="20" style="vertical-align:middle;"> Processing...';
-
+    // Set loading state
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `<span class="loader"></span>Processing your fresh greens...  `;
     try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
@@ -858,10 +858,19 @@ async function submitOrder() {
 
     } catch (error) {
         console.error('Submission error:', error);
-        alert('Failed to submit order. Please try again or contact us directly.');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Place Order';
+       alert('🌱 Oops! Something sprouted wrong. Please try again.');
+  } finally {
+    // Reset button (with smooth transition)
+    setTimeout(() => {
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Order Placed! ✓';
+      
+      // Revert after 2 seconds
+      setTimeout(() => {
+        submitBtn.innerHTML = 'Place New Order';
+      }, 2000);
+    }, 500);
     }
 }
 
