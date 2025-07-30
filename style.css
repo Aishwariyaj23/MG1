@@ -979,16 +979,16 @@ h2 {
 }
 
 
-/* Loader Spinner Styles */
-.spinner {
+/* Microgreens-themed Loader */
+.btn-place-order .loader {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e0f7e0; /* Light green track */
   border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
-  margin-right: 8px;
+  border-top-color: #4CAF50; /* Vibrant green spin */
+  animation: spin 0.8s linear infinite;
+  margin-right: 10px;
   vertical-align: middle;
 }
 
@@ -996,8 +996,18 @@ h2 {
   to { transform: rotate(360deg); }
 }
 
-/* Disable button during submission */
+/* Button states */
 .btn-place-order[disabled] {
-  opacity: 0.7;
-  cursor: not-allowed;
+  background: #81C784; /* Softer green when loading */
+  cursor: wait;
+}
+
+/* Pulse animation for smooth transitions */
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.btn-place-order.loading {
+  animation: pulse-opacity 1.5s ease infinite;
 }
