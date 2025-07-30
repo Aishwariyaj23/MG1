@@ -671,7 +671,7 @@ function setupCheckout() {
     document.getElementById('upi-pay-button').addEventListener('click', function() {
         const total = calculateOrderTotal();
         const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-        //window.open(upiLink, '_blank');
+        window.open(upiLink, '_blank');
     });
 
     document.getElementById('btn-place-order').addEventListener('click', submitOrder);
@@ -725,7 +725,7 @@ function showQRCodeFallback(qrContainer, total) {
 
     document.getElementById('manual-upi-pay').addEventListener('click', function() {
         const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-      //  window.open(upiLink, '_blank');
+        window.open(upiLink, '_blank');
     });
 }
 
