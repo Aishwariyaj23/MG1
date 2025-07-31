@@ -31,7 +31,7 @@ header {
   text-align: center;
   position: relative;
   color: white;
-  
+  margin-bottom: 20px;
 }
 
 header img.logo {
@@ -141,15 +141,19 @@ h2 {
 
 /* Cart Styles */
 #cart-container {
-  position: sticky;
-  top: 0; /* Stick to top after header */
+  position: absolute; /* Absolute within header */
+  top: 20px;
+  right: 20px;
   z-index: 1000;
-  background: white; /* Optional: Add background to avoid transparency issues */
-  padding: 10px 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Optional: Add shadow for separation */
+  /* Remove background & padding to avoid white bar */
+  background: transparent; 
+  padding: 0;
+  /* Adjust positioning */
+  margin-top: -70px; /* Pull up to overlap header (if needed) */
   display: flex;
   justify-content: flex-end;
-  width: 100%;
+  width: auto; /* Let it fit content */
+  right: 20px; /* Align to right */
 }
 
 #cart-icon {
@@ -191,8 +195,8 @@ h2 {
 #cart-dropdown {
   display: none;
   position: absolute;
-  right: 20px;
-  top: 60px;
+  right: 0;
+  top: 70px;
   background: white;
   width: 350px;
   border-radius: 12px;
