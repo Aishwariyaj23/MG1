@@ -31,6 +31,7 @@ header {
   text-align: center;
   position: relative;
   color: white;
+  margin-bottom: 70px; /* Space for sticky cart */
 }
 
 header img.logo {
@@ -140,10 +141,15 @@ h2 {
 
 /* Cart Styles */
 #cart-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
+  position: sticky;
+  top: 0; /* Stick to top after header */
   z-index: 1000;
+  background: white; /* Optional: Add background to avoid transparency issues */
+  padding: 10px 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Optional: Add shadow for separation */
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 #cart-icon {
@@ -185,8 +191,8 @@ h2 {
 #cart-dropdown {
   display: none;
   position: absolute;
-  right: 0;
-  top: 70px;
+  right: 20px;
+  top: 60px;
   background: white;
   width: 350px;
   border-radius: 12px;
