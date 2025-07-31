@@ -143,14 +143,10 @@ h2 {
 
 /* Cart Styles */
 #cart-container {
-  position: fixed;
-  top: 100px; /* Position below header (adjust based on header height) */
+  position: fixed; /* or sticky */
+  z-index: 9999; /* Higher than other elements */
+  top: 100px; /* Adjust based on header height */
   right: 20px;
-  z-index: 1000;
-  background: transparent; /* Remove white background */
-  padding: 0;
-  margin: 0;
-  width: auto; /* Fit to content */
 }
 #cart-icon {
   background: var(--accent);
