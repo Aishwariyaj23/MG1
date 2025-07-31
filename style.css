@@ -25,9 +25,11 @@ body {
 }
 
 header {
+  position: relative;
+  z-index: 100;
   background: url('images/background1.jpg') no-repeat center center;
   background-size: cover;
-  padding: 2rem 1rem 1.5rem;
+  padding-bottom: 80px;
   text-align: center;
   position: relative;
   color: white;
