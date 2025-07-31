@@ -4,9 +4,7 @@
   --accent: #25D366;
   --text-color: #345634;
 }
-* {
-  border: 1px solid red !important; /* Highlights all elements */
-}
+
 body {
   margin: 0;
   font-family: 'Montserrat', sans-serif;
