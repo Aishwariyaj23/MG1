@@ -23,6 +23,10 @@ if (!qrCodeLoaded) {
     document.head.appendChild(script);
 }
 
+window.addEventListener('scroll', () => {
+  const cart = document.getElementById('cart-container');
+  cart.style.display = window.scrollY > 100 ? 'block' : 'none';
+});
 // ========== CONFIGURATION & DATA ========== //
 console.log('Initializing microgreens application');
 const storedCart = localStorage.getItem('microgreensCart');
