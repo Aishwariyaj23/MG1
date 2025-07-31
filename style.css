@@ -4,7 +4,9 @@
   --accent: #25D366;
   --text-color: #345634;
 }
-
+* {
+  border: 1px solid red !important; /* Highlights all elements */
+}
 body {
   margin: 0;
   font-family: 'Montserrat', sans-serif;
@@ -31,7 +33,7 @@ header {
   text-align: center;
   position: relative;
   color: white;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 header img.logo {
@@ -141,21 +143,15 @@ h2 {
 
 /* Cart Styles */
 #cart-container {
-  position: absolute; /* Absolute within header */
-  top: 20px;
+  position: fixed;
+  top: 100px; /* Position below header (adjust based on header height) */
   right: 20px;
   z-index: 1000;
-  /* Remove background & padding to avoid white bar */
-  background: transparent; 
+  background: transparent; /* Remove white background */
   padding: 0;
-  /* Adjust positioning */
-  margin-top: -70px; /* Pull up to overlap header (if needed) */
-  display: flex;
-  justify-content: flex-end;
-  width: auto; /* Let it fit content */
-  right: 20px; /* Align to right */
+  margin: 0;
+  width: auto; /* Fit to content */
 }
-
 #cart-icon {
   background: var(--accent);
   color: white;
@@ -196,7 +192,7 @@ h2 {
   display: none;
   position: absolute;
   right: 0;
-  top: 70px;
+  top: 60px;
   background: white;
   width: 350px;
   border-radius: 12px;
