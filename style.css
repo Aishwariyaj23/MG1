@@ -13,6 +13,16 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
 }
+.original-price {
+  text-decoration: line-through;
+  color: #999; /* Gray out the original price */
+  margin-right: 5px; /* Space between prices */
+}
+
+.discounted-price {
+  color: #e53935; /* Highlight discounted price (e.g., red) */
+  font-weight: bold;
+}
 
 header {
   background: url('images/background1.jpg') no-repeat center center;
