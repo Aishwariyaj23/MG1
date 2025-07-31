@@ -397,10 +397,42 @@ function initializeModal() {
 
 // ========== CART FUNCTIONS ========== //
 function initializeCart() {
-    document.getElementById('cart-icon').addEventListener('click', function(event) {
-        event.stopPropagation(); // Prevent document click from closing it immediately
-        document.getElementById('cart-dropdown').classList.toggle('show');
-    });
+  // Improved cart toggle with scroll handling
+let lastScrollPosition = 0;
+
+document.getElementById('cart-icon').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const dropdown = document.getElementById('cart-dropdown');
+  dropdown.classList.toggle('show');
+  
+  // Lock body scroll when cart is open
+  if (dropdown.classList.contains('show')) {
+    lastScrollPosition = window.scrollY;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${lastScrollPosition}px`;
+    document.body.style.width = '100%';
+  } else {
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    window.scrollTo(0, lastScrollPosition);
+  }
+});
+
+// Close cart when clicking outside
+document.addEventListener('click', function(e) {
+  const cartContainer = document.getElementById('cart-container');
+  if (!cartContainer.contains(e.target)) {
+    document.getElementById('cart-dropdown').classList.remove('show');
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    if (lastScrollPosition > 0) {
+      window.scrollTo(0, lastScrollPosition);
+    }
+  }
+});
 
     // Close cart dropdown if clicking outside
     document.addEventListener('click', function(event) {
