@@ -13,14 +13,27 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
 }
+.original-price {
+  text-decoration: line-through;
+  color: #999; /* Gray out the original price */
+  margin-right: 5px; /* Space between prices */
+}
+
+.discounted-price {
+  color: #e53935; /* Highlight discounted price (e.g., red) */
+  font-weight: bold;
+}
 
 header {
+  position: relative;
+  z-index: 100;
   background: url('images/background1.jpg') no-repeat center center;
   background-size: cover;
-  padding: 2rem 1rem 1.5rem;
+  padding-bottom: 80px;
   text-align: center;
   position: relative;
   color: white;
+  margin-bottom: 0;
 }
 
 header img.logo {
@@ -130,12 +143,11 @@ h2 {
 
 /* Cart Styles */
 #cart-container {
-  position: fixed;
-  top: 20px;
+  position: fixed; /* or sticky */
+  z-index: 9999; /* Higher than other elements */
+  top: 100px; /* Adjust based on header height */
   right: 20px;
-  z-index: 1000;
 }
-
 #cart-icon {
   background: var(--accent);
   color: white;
@@ -176,7 +188,7 @@ h2 {
   display: none;
   position: absolute;
   right: 0;
-  top: 70px;
+  top: 60px;
   background: white;
   width: 350px;
   border-radius: 12px;
@@ -1108,4 +1120,53 @@ h2 {
   font-size: 1.2rem;
   margin-top: 20px;
   font-weight: 600;
+}
+/* Feedback Button */
+.floating-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--green);
+  color: white;
+  width: 120px;
+  height: 50px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.floating-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* Rating Stars */
+.rating-stars {
+  font-size: 2rem;
+  color: #ddd;
+  margin: 0.5rem 0;
+}
+
+.rating-stars .star {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.rating-stars .star:hover,
+.rating-stars .star.active {
+  color: #ffc107;
+}
+
+/* Feedback Form */
+#feedback-form {
+  margin-top: 1.5rem;
+}
+
+#feedback-form .form-group {
+  margin-bottom: 1.5rem;
 }

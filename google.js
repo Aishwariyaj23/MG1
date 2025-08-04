@@ -4,7 +4,7 @@
 
 // ========== CONFIGURATION ========== //
 const CONFIG = {
-  SPREADSHEET_ID: "1J5OAhoDek9H66LFNp2MlEK-vzhs_E1i-jw9iG_4iP7Y",
+  SPREADSHEET_ID: "1nlNFnKf-ai3AOGF8-NR45_FZcdOCKHbt5KTt6p_t0-w",
   SHEET_NAME: "Sheet1",
   ADMIN_EMAIL: "aishauramicrogreens@gmail.com",
   BUSINESS_NAME: "Aishaura Microgreens",
@@ -44,20 +44,27 @@ function log(message, level = "INFO") {
 // In your Google Apps Script (additional code)
 function doPost(e) {
   try {
-    let params;
+    let params = {};
     
-    // Check content type
-    if (e.postData && e.postData.type === "application/json") {
+    // Properly decode URL-encoded parameters
+    if (e.postData && e.postData.type === "application/x-www-form-urlencoded") {
+      const rawParams = e.postData.contents.split('&');
+      rawParams.forEach(param => {
+        const [key, value] = param.split('=');
+        if (key) {
+          params[decodeURIComponent(key)] = decodeURIComponent(value || '').replace(/\+/g, ' ');
+        }
+      });
+    } else if (e.postData && e.postData.type === "application/json") {
       params = JSON.parse(e.postData.contents);
     } else {
       params = e.parameter || {};
     }
     
-    // Validate required fields
-    const validation = validateOrderFields(params);
-    if (!validation.valid) {
+    // Basic validation
+    if (!params.name || !params.contact || !params.email || !params.address) {
       return ContentService.createTextOutput(
-        JSON.stringify({status: "error", message: validation.message})
+        JSON.stringify({status: "error", message: "Missing required fields"})
       ).setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -65,6 +72,37 @@ function doPost(e) {
     const { sheet, headers } = setupSpreadsheet();
     const orderId = generateSequentialOrderId(sheet);
     recordOrder(sheet, headers, params, orderId);
+    
+  function verifyEmailStorage(sheet, orderId, expectedEmail) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const orderIdCol = headers.indexOf(CONFIG.COLUMNS.ORDER_ID) + 1;
+  const emailCol = headers.indexOf(CONFIG.COLUMNS.EMAIL) + 1;
+  
+  if (emailCol === 0) {
+    log("Email column not found in sheet", "ERROR");
+    return false;
+  }
+  
+  const orderIds = sheet.getRange(2, orderIdCol, sheet.getLastRow()-1, 1).getValues().flat();
+  const rowIndex = orderIds.indexOf(orderId) + 2;
+  
+  if (rowIndex < 2) {
+    log(`Order ${orderId} not found in sheet`, "ERROR");
+    return false;
+  }
+  
+  const storedEmail = sheet.getRange(rowIndex, emailCol).getValue();
+  log(`Email verification: Expected '${expectedEmail}', Found '${storedEmail}'`, "DEBUG");
+  
+  return storedEmail === expectedEmail;
+}
+    // Verify email was stored
+    if (params.email) {
+      const emailStored = verifyEmailStorage(sheet, orderId, params.email);
+      if (!emailStored) {
+        log("Email was not stored correctly in sheet", "ERROR");
+      }
+    }
     
     // Send notifications if requested
     if (params.sendEmail === "yes") {
@@ -81,7 +119,6 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
-
 function processOrder(params) {
   try {
     const { sheet } = setupSpreadsheet();
@@ -257,8 +294,13 @@ function recordOrder(sheet, headers, params, orderId) {
   Object.entries(fieldMappings).forEach(([param, columnName]) => {
     const colIndex = headers.indexOf(columnName);
     if (colIndex !== -1) {
-      rowData[colIndex] = params[param] || '';
-      log(`Mapped ${param} to column ${columnName} (index ${colIndex}) with value: ${params[param] || ''}`, "DEBUG");
+      // Clean the value before storing
+      let value = params[param] || '';
+      if (typeof value === 'string') {
+        value = value.replace(/\+/g, ' ').trim();
+      }
+      rowData[colIndex] = value;
+      log(`Stored ${columnName}: ${value}`, "DEBUG");
     }
   });
   
