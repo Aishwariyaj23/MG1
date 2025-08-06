@@ -222,7 +222,7 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdXFuRzjfHSSz5H-wBS0aU3d21o90OAzMgj9RUo4bHHEDG455iXEeN-yPvdLFogWL-/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1Wa8pU3sOy374neZVVTEDsg-y66TNnKh4kpfkhT5J24HInrXy7oec1gumsdQwYFofSA/exec";
 
 // Cart functionality
 let cart = [];
@@ -835,85 +835,55 @@ function validateCustomerInfo() {
 // ========== ORDER SUBMISSION FUNCTIONS ========== //
 
 async function submitOrder() {
-    // Collect all required data
-    const name = document.getElementById('customer-name').value.trim();
-    const phone = document.getElementById('customer-phone').value.trim();
-    const email = document.getElementById('customer-email').value.trim();
-    const address = document.getElementById('customer-address').value.trim();
-    const notes = document.getElementById('customer-notes').value.trim();
-    const paymentMethod = document.querySelector('.payment-option.active')?.getAttribute('data-method') || '';
-    const total = calculateOrderTotal();
+    // Collect all required data (keep your existing collection code)
     const submitBtn = document.getElementById('btn-place-order');
     
-    // Validate inputs
-    if (!validateCustomerInfo()) return;
-
-    // Prepare order data
-    const orderData = {
-        name: name,
-        contact: phone,
-        email: email,
-        product: cart.map(item => `${item.product} (${item.quantity}g)`).join(', '),
-        quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g',
-        address: address,
-        notes: notes,
-        payment_method: paymentMethod,
-        status: paymentMethod === 'upi' ? 'Pending UPI Payment' : 'Pending COD',
-        sendEmail: 'yes',
-        total_price: total.toFixed(2),
-        total_amount: `₹${total.toFixed(2)}`, // Adding formatted total amount
-        items: cart.map(item => ({
-            name: item.product,
-            quantity: `${item.quantity}g`,
-            price: `₹${item.price}/50g`,
-            item_total: `₹${((item.quantity / 50) * item.price).toFixed(2)}`
-        }))
-    };
-
-    console.log('Submitting order:', orderData);
-
     // Set loading state
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<span class="loader"></span>Processing your fresh greens...`;
-    
+    submitBtn.innerHTML = `<span class="loader"></span>Processing...`;
+
     try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(orderData)
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: document.getElementById('customer-name').value.trim(),
+                phone: document.getElementById('customer-phone').value.trim(),
+                email: document.getElementById('customer-email').value.trim(),
+                address: document.getElementById('customer-address').value.trim(),
+                notes: document.getElementById('customer-notes').value.trim(),
+                payment_method: document.querySelector('.payment-option.active')?.getAttribute('data-method') || '',
+                amount: calculateOrderTotal().toFixed(2),
+                product: cart.map(item => item.product).join(', '),
+                quantity: cart.reduce((sum, item) => sum + item.quantity, 0)
+            })
         });
 
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         const result = await response.json();
         
-        if (result.status !== 'success') {
+        if (result.status === 'success') {
+            showOrderConfirmation(result.data.orderId, calculateOrderTotal());
+            clearCart();
+            alert(`your order has been placed successfully! Order ID: ${result.data.orderId}\n\nYour order details will update over whatsapp `);
+        } else {
             throw new Error(result.message || 'Order submission failed');
         }
-
-        // Success handling
-        showOrderConfirmation(result.orderId, total);
-        clearCart();
-
     } catch (error) {
         console.error('Submission error:', error);
-        alert('🌱 Oops! Something sprouted wrong. Please try again.');
+        alert(`Error: ${error.message}\n\nPlease contact us directly at ${CONFIG.BUSINESS_MOBILE}`);
     } finally {
-        // Reset button (with smooth transition)
-        setTimeout(() => {
-            submitBtn.classList.remove('loading');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Order Placed! ✓';
-            
-            // Revert after 2 seconds
-            setTimeout(() => {
-                submitBtn.innerHTML = 'Place New Order';
-            }, 2000);
-        }, 500);
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Place Order';
     }
 }
-
 // Helper function for showing confirmation
 function showOrderConfirmation(orderId, total) {
     document.getElementById('confirmation-id').textContent = `#${orderId}`;

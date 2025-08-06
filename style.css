@@ -25,11 +25,9 @@ body {
 }
 
 header {
-  position: relative;
-  z-index: 100;
   background: url('images/background1.jpg') no-repeat center center;
   background-size: cover;
-  padding-bottom: 80px;
+  padding: 2rem 1rem 1.5rem;
   text-align: center;
   position: relative;
   color: white;
@@ -1120,53 +1118,4 @@ h2 {
   font-size: 1.2rem;
   margin-top: 20px;
   font-weight: 600;
-}
-/* Feedback Button */
-.floating-button {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  background: var(--green);
-  color: white;
-  width: 120px;
-  height: 50px;
-  border-radius: 25px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
-  z-index: 1000;
-}
-
-.floating-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-}
-
-/* Rating Stars */
-.rating-stars {
-  font-size: 2rem;
-  color: #ddd;
-  margin: 0.5rem 0;
-}
-
-.rating-stars .star {
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.rating-stars .star:hover,
-.rating-stars .star.active {
-  color: #ffc107;
-}
-
-/* Feedback Form */
-#feedback-form {
-  margin-top: 1.5rem;
-}
-
-#feedback-form .form-group {
-  margin-bottom: 1.5rem;
 }
