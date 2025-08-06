@@ -32,7 +32,7 @@ console.log('Initial cart from localStorage:', storedCart ? JSON.parse(storedCar
 const productData = {
     "Sunflower Microgreens": {
         image: "images/sunflower.jpg",
-        price: 100,
+        price: 80,
         description: "Sunflower microgreens are packed with nutrients and have a delightful crunchy texture.",
         benefits: [
             "High in protein for energy and muscle repair",
@@ -49,7 +49,7 @@ const productData = {
     },
     "Radish Microgreens": {
         image: "images/radish.jpg",
-        price: 100,
+        price: 80,
         description: "Spicy radish microgreens add a kick to any dish while providing powerful nutrients.",
         benefits: [
             "High in vitamin C for immune support",
@@ -66,7 +66,7 @@ const productData = {
     },
     "Mustard Microgreens": {
         image: "images/mustard.png",
-        price: 90,
+        price: 75,
         description: "Mustard microgreens bring bold flavor and impressive health benefits.",
         benefits: [
             "Rich in Vitamin K for bone health",
@@ -83,7 +83,7 @@ const productData = {
     },
     "Wheat Grass": {
         image: "images/wheat-grass.jpg",
-        price: 120,
+        price: 100,
         description: "Wheat grass is a nutrient-packed superfood known for its high chlorophyll content and detoxifying properties.",
         benefits: [
             "Rich in chlorophyll which supports blood health",
@@ -100,7 +100,7 @@ const productData = {
     },
     "Mixed Microgreens": {
         image: "images/mixed.jpg",
-        price: 120,
+        price: 80,
         description: "Our mixed microgreens provide a variety of flavors and nutrients in one convenient package.",
         benefits: [
             "Provides diverse range of nutrients",
@@ -222,7 +222,7 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1Wa8pU3sOy374neZVVTEDsg-y66TNnKh4kpfkhT5J24HInrXy7oec1gumsdQwYFofSA/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySeiPtxyo-TZ3XTpbqRUUf0JkVQiz3xw_Ok-AwxYcbLw-11CY6VF1q2JOfLnRbXojc/exec";
 
 // Cart functionality
 let cart = [];
@@ -397,42 +397,10 @@ function initializeModal() {
 
 // ========== CART FUNCTIONS ========== //
 function initializeCart() {
-  // Improved cart toggle with scroll handling
-let lastScrollPosition = 0;
-
-document.getElementById('cart-icon').addEventListener('click', function(e) {
-  e.stopPropagation();
-  const dropdown = document.getElementById('cart-dropdown');
-  dropdown.classList.toggle('show');
-  
-  // Lock body scroll when cart is open
-  if (dropdown.classList.contains('show')) {
-    lastScrollPosition = window.scrollY;
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${lastScrollPosition}px`;
-    document.body.style.width = '100%';
-  } else {
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
-    window.scrollTo(0, lastScrollPosition);
-  }
-});
-
-// Close cart when clicking outside
-document.addEventListener('click', function(e) {
-  const cartContainer = document.getElementById('cart-container');
-  if (!cartContainer.contains(e.target)) {
-    document.getElementById('cart-dropdown').classList.remove('show');
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
-    if (lastScrollPosition > 0) {
-      window.scrollTo(0, lastScrollPosition);
-    }
-  }
-});
+    document.getElementById('cart-icon').addEventListener('click', function(event) {
+        event.stopPropagation(); // Prevent document click from closing it immediately
+        document.getElementById('cart-dropdown').classList.toggle('show');
+    });
 
     // Close cart dropdown if clicking outside
     document.addEventListener('click', function(event) {
@@ -703,7 +671,7 @@ function setupCheckout() {
     document.getElementById('upi-pay-button').addEventListener('click', function() {
         const total = calculateOrderTotal();
         const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-        window.open(upiLink, '_blank');
+        //window.open(upiLink, '_blank');
     });
 
     document.getElementById('btn-place-order').addEventListener('click', submitOrder);
@@ -757,7 +725,7 @@ function showQRCodeFallback(qrContainer, total) {
 
     document.getElementById('manual-upi-pay').addEventListener('click', function() {
         const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-        window.open(upiLink, '_blank');
+      //  window.open(upiLink, '_blank');
     });
 }
 
@@ -835,58 +803,158 @@ function validateCustomerInfo() {
 // ========== ORDER SUBMISSION FUNCTIONS ========== //
 
 async function submitOrder() {
-    // Collect all required data (keep your existing collection code)
+    // Collect all required data
+    const name = document.getElementById('customer-name').value.trim();
+    const phone = document.getElementById('customer-phone').value.trim();
+    const email = document.getElementById('customer-email').value.trim();
+    const address = document.getElementById('customer-address').value.trim();
+    const notes = document.getElementById('customer-notes').value.trim();
+    const paymentMethod = document.querySelector('.payment-option.active')?.getAttribute('data-method') || '';
+    const total = calculateOrderTotal();
     const submitBtn = document.getElementById('btn-place-order');
-    
-    // Set loading state
-    submitBtn.classList.add('loading');
+
+    // Validate inputs
+    if (!validateCustomerInfo()) return;
+
+    // Prepare order data
+    const orderData = {
+        name: name,
+        contact: phone,
+        email: email,
+        product: cart.map(item => `${item.product} (${item.quantity}g)`).join(', '),
+        quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g',
+        address: address,
+        notes: notes,
+        payment_method: paymentMethod,
+        status: paymentMethod === 'upi' ? 'Pending UPI Payment' : 'Pending COD',
+        sendEmail: 'yes'
+    };
+
+    console.log('Submitting order:', orderData);
+
+    // UI Loading State
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<span class="loader"></span>Processing...`;
+    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
 
     try {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                name: document.getElementById('customer-name').value.trim(),
-                phone: document.getElementById('customer-phone').value.trim(),
-                email: document.getElementById('customer-email').value.trim(),
-                address: document.getElementById('customer-address').value.trim(),
-                notes: document.getElementById('customer-notes').value.trim(),
-                payment_method: document.querySelector('.payment-option.active')?.getAttribute('data-method') || '',
-                amount: calculateOrderTotal().toFixed(2),
-                product: cart.map(item => item.product).join(', '),
-                quantity: cart.reduce((sum, item) => sum + item.quantity, 0)
-            })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(orderData)
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
         const result = await response.json();
         
-        if (result.status === 'success') {
-            showOrderConfirmation(result.data.orderId, calculateOrderTotal());
-            clearCart();
-            alert(`your order has been placed successfully! Order ID: ${result.data.orderId}\n\nYour order details will update over whatsapp `);
-        } else {
+        if (result.status !== 'success') {
             throw new Error(result.message || 'Order submission failed');
         }
+
+        // Success handling
+        showOrderConfirmation(result.orderId, total);
+        clearCart();
+        alert('Order submitted successfully! Order ID: ' + result.orderId);
+
     } catch (error) {
         console.error('Submission error:', error);
-        alert(`Error: ${error.message}\n\nPlease contact us directly at ${CONFIG.BUSINESS_MOBILE}`);
+        alert('Failed to submit order. Please try again or contact us directly.');
     } finally {
-        submitBtn.classList.remove('loading');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Place Order';
     }
 }
+
+// Helper function for form submission fallback
+function submitOrderViaFormFallback(orderData) {
+    const form = document.createElement('form');
+    form.style.display = 'none';
+    form.method = 'POST';
+    form.action = GOOGLE_SCRIPT_URL;
+    
+    for (const [key, value] of Object.entries(orderData)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => document.body.removeChild(form), 5000);
+}
+
 // Helper function for showing confirmation
 function showOrderConfirmation(orderId, total) {
     document.getElementById('confirmation-id').textContent = `#${orderId}`;
     document.getElementById('confirmation-total').textContent = `₹${total.toFixed(2)}`;
     showCheckoutStep(4);
 }
+// Helper function for form submission fallback
+function submitOrderViaFormFallback(orderData) {
+    const form = document.createElement('form');
+    form.style.display = 'none';
+    form.method = 'POST';
+    form.action = GOOGLE_SCRIPT_URL;
+   // form.target = '_blank';
+
+    for (const [key, value] of Object.entries(orderData)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => document.body.removeChild(form), 5000);
+}
+
+// Helper function for showing confirmation
+function showOrderConfirmation(orderId, total) {
+    document.getElementById('confirmation-id').textContent = `#${orderId}`;
+    document.getElementById('confirmation-total').textContent = `₹${total.toFixed(2)}`;
+    showCheckoutStep(4);
+}
+// ========== WHATSAPP CONFIRMATION ========== //
+// function sendWhatsAppConfirmation(name, phone, orderId, total, paymentMethod, address, notes) {
+//     const cleanedPhone = phone.replace(/\D/g, '');
+//     // Ensure the number starts with 91 for India, or add it if missing
+//     const whatsappNumber = cleanedPhone.startsWith('91') ? cleanedPhone : `91${cleanedPhone}`;
+
+//     if (whatsappNumber.length >= 10) { // Should be at least 10 digits after cleaning, 12 with 91
+//         let message = `Namaskara ${name}! Thank you for your order with Aishaura Microgreens.\n\n`;
+//         message += `📦 *Order Confirmation:*\n`;
+//         message += `🆔 Order ID: #${orderId}\n`;
+
+//         cart.forEach(item => {
+//             message += `🌱 ${item.product}: ${item.quantity}g (₹${item.price}/50g)\n`;
+//         });
+
+//         message += `\n💰 *Order Total:* ₹${total.toFixed(2)}\n`;
+//         message += `💳 *Payment Method:* ${paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery'}\n`;
+//         message += `🏠 *Delivery Address:* ${address}\n`;
+
+//         if (notes) {
+//             message += `📝 *Special Instructions:* ${notes}\n`;
+//         }
+
+//         if (paymentMethod === 'upi') {
+//             message += `\n*Please complete your UPI payment to:*\n`;
+//             message += `UPI ID: shashi.shashi7271@ybl\n`;
+//             message += `Amount: ₹${total.toFixed(2)}\n\n`;
+//             message += `We'll process your order once payment is confirmed.`;
+//         } else {
+//             message += `\nWe'll process your order shortly. Please keep cash ready for delivery.`;
+//         }
+
+//         message += `\n\nThank you for choosing Aishaura Microgreens!`;
+
+//         const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+//         window.open(whatsappUrl, '_blank');
+//     } else {
+//         console.warn('Invalid phone number for WhatsApp:', phone);
+//     }
+// }
