@@ -222,7 +222,7 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQ9wGJF09yx3kZvoRbCQay_qrjXkjnp4GLvveTiq95COiIsNL5P7v3Jy7lO6d1XXbq/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1DnqcvbDH-3Ap5dgCCNvb_vqppVmHPGjuN1IsSHVpPGGZoxqTw0vva90V0mEuXwnm/exec";
 
 // Cart functionality
 let cart = [];
@@ -829,7 +829,7 @@ async function submitOrder() {
   submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
 
   try {
-    // Prepare all order data
+    // Prepare order data
     const orderData = {
       name: document.getElementById('customer-name').value.trim(),
       phone: document.getElementById('customer-phone').value.trim(),
@@ -842,39 +842,51 @@ async function submitOrder() {
       quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g'
     };
 
-    // Generate order ID for immediate display
-    const tempOrderId = 'ORD-' + Date.now();
-    
-    // Show temporary confirmation alert
-    alert(`Order Successful!\n\nOrder ID: ${tempOrderId}\nAmount: ₹${orderData.amount}`);
-    
-    // Submit via fetch (hidden from user)
+    // Submit to server
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams(orderData),
-      mode: 'no-cors' // Important for CORS
+      body: new URLSearchParams(orderData)
     });
+    
 
-    // Clear cart and reset UI
+    // Check for empty response
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status} status`);
+    }
+
+    // Parse JSON response
+  const result = await response.json();
+
+        // Verify the ID format
+            if (!result.orderId.includes('AM-')) {
+            console.error('Invalid order ID format:', result.orderId);
+            throw new Error('Received invalid order ID from server');
+            }
+
+    // Validate response structure
+    if (!result || !result.orderId) {
+      throw new Error("Missing order ID in response");
+    }
+console.log("Server response:", result); // Add this before showing alert
+
+    // Show success message
+    alert(`Order Successful!\n\nOrder ID: ${result.orderId}\nAmount: ₹${result.amount || orderData.amount}`);
+
+    // Clear cart
     clearCart();
     updateCartDisplay();
-    
-    // Optional: Show success notification
-    showSuccessNotification(`Order ${tempOrderId} placed successfully!`);
 
   } catch (error) {
     console.error('Submission error:', error);
-    alert('Order failed. Please try again or contact support.');
-    showErrorNotification('Order submission failed');
+    alert(`Order failed: ${error.message}`);
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Place Order';
   }
 }
-
 
 // Helper function to show nice notification
 function showSuccessNotification(message) {
