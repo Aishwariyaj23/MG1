@@ -1144,3 +1144,33 @@ h2 {
 .success-notification.show, .error-notification.show {
     transform: translateX(0);
 }
+
+.cart-notification.success {
+  background: #4CAF50;
+  color: white;
+}
+
+.cart-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 4px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.cart-notification.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.cart-notification svg {
+  flex-shrink: 0;
+}

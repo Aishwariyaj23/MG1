@@ -842,44 +842,59 @@ async function submitOrder() {
       quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g'
     };
 
-    // Method 1: Form submission (most reliable)
-    const form = document.createElement('form');
-    form.style.display = 'none';
-    form.method = 'POST';
-    form.action = GOOGLE_SCRIPT_URL;
+    // Generate order ID for immediate display
+    const tempOrderId = 'ORD-' + Date.now();
     
-    for (const [key, value] of Object.entries(orderData)) {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = value;
-      form.appendChild(input);
-    }
+    // Show temporary confirmation alert
+    alert(`Order Successful!\n\nOrder ID: ${tempOrderId}\nAmount: ₹${orderData.amount}`);
+    
+    // Submit via fetch (hidden from user)
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(orderData),
+      mode: 'no-cors' // Important for CORS
+    });
 
-    document.body.appendChild(form);
-    form.submit();
-    
-    // Show confirmation immediately (since we can't get response)
-    showOrderConfirmation('ORD-' + Date.now(), orderData.amount);
+    // Clear cart and reset UI
     clearCart();
-    showSuccessNotification('Order submitted successfully!');
+    updateCartDisplay();
     
-    // Clean up after 1 second
-    setTimeout(() => {
-      try {
-        document.body.removeChild(form);
-      } catch (e) {
-        console.log("Form already removed");
-      }
-    }, 1000);
+    // Optional: Show success notification
+    showSuccessNotification(`Order ${tempOrderId} placed successfully!`);
 
   } catch (error) {
     console.error('Submission error:', error);
-    showErrorNotification(`Order failed: ${error.message}`);
+    alert('Order failed. Please try again or contact support.');
+    showErrorNotification('Order submission failed');
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Place Order';
   }
+}
+
+
+// Helper function to show nice notification
+function showSuccessNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'cart-notification success';
+  notification.innerHTML = `
+    <svg viewBox="0 0 24 24" width="24" height="24">
+      <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+    </svg>
+    <span>${message}</span>
+  `;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.classList.add('show');
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => document.body.removeChild(notification), 300);
+    }, 3000);
+  }, 10);
 }
 
 
