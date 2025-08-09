@@ -222,7 +222,7 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywfbxhnxPGkoNXLxCR0dtmjmaIEPJDPOZ3QsxTJl_3waVfsD_OIk7eA5jV1A1lUmE/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQ9wGJF09yx3kZvoRbCQay_qrjXkjnp4GLvveTiq95COiIsNL5P7v3Jy7lO6d1XXbq/exec";
 
 // Cart functionality
 let cart = [];
@@ -812,86 +812,76 @@ function handleResponse(response) {
 }
 
 // ========== ORDER SUBMISSION FUNCTIONS ========== //
+// Add this to your app.js
+function generateOrderId() {
+  const date = new Date();
+  return 'ORD-' + 
+    date.getFullYear().toString().substr(-2) + 
+    (date.getMonth() + 1).toString().padStart(2, '0') + 
+    date.getDate().toString().padStart(2, '0') + '-' + 
+    Math.floor(1000 + Math.random() * 9000);
+}
+
+
 async function submitOrder() {
-    // Validate inputs first
-    const validation = validateCustomerInfo();
-    if (!validation.valid) {
-        showErrorNotification(validation.message || "Validation failed.");
-        return;
-    }
+  const submitBtn = document.getElementById('btn-place-order');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
 
-    // Collect all required data
-    const name = document.getElementById('customer-name').value.trim();
-    const phone = document.getElementById('customer-phone').value.trim();
-    const email = document.getElementById('customer-email').value.trim();
-    const address = document.getElementById('customer-address').value.trim();
-    const notes = document.getElementById('customer-notes').value.trim();
-    const paymentMethod = document.querySelector('.payment-option.active')?.getAttribute('data-method') || '';
-    const total = calculateOrderTotal();
-    const submitBtn = document.getElementById('btn-place-order');
-
-    // Prepare order data
+  try {
+    // Prepare all order data
     const orderData = {
-        name: name,
-        phone: phone,
-        email: email,
-        product: cart.map(item => `${item.product} (${item.quantity}g)`).join(', '),
-        quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g',
-        address: address,
-        notes: notes,
-        amount: total.toFixed(2),
-        payment_method: paymentMethod,
-        status: paymentMethod === 'upi' ? 'Pending UPI Payment' : 'Pending COD',
-        sendEmail: 'yes'
+      name: document.getElementById('customer-name').value.trim(),
+      phone: document.getElementById('customer-phone').value.trim(),
+      email: document.getElementById('customer-email').value.trim(),
+      address: document.getElementById('customer-address').value.trim(),
+      notes: document.getElementById('customer-notes').value.trim(),
+      payment_method: document.querySelector('.payment-option.active')?.getAttribute('data-method') || 'upi',
+      amount: calculateOrderTotal().toFixed(2),
+      product: cart.map(item => `${item.product} (${item.quantity}g)`).join(', '),
+      quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g'
     };
 
-    console.log('Submitting order:', orderData);
-
-    // UI Loading State
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
-
-    try {
-        // First try the fetch API approach
-        try {
-            const response = await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(orderData)
-            });
-
-            // If fetch succeeds but we can't read response (due to no-cors), assume success
-            showOrderConfirmation(generateOrderId(), total);
-            clearCart();
-            showSuccessNotification('Order submitted successfully!');
-            return;
-        } catch (fetchError) {
-            console.log('Fetch API failed, trying fallback method:', fetchError);
-        }
-
-        // Fallback to JSONP if fetch fails
-        const jsonpResponse = await submitOrderViaJsonp(orderData);
-        if (jsonpResponse && jsonpResponse.status === 'success') {
-            showOrderConfirmation(jsonpResponse.orderId || generateOrderId(), total);
-            clearCart();
-            showSuccessNotification('Order submitted successfully!');
-            return;
-        }
-
-        // Final fallback to form submission
-        submitOrderViaFormFallback(orderData);
-        
-    } catch (error) {
-        console.error('Submission error:', error);
-        showErrorNotification(`Order failed: ${error.message}`);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Place Order';
+    // Method 1: Form submission (most reliable)
+    const form = document.createElement('form');
+    form.style.display = 'none';
+    form.method = 'POST';
+    form.action = GOOGLE_SCRIPT_URL;
+    
+    for (const [key, value] of Object.entries(orderData)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
     }
+
+    document.body.appendChild(form);
+    form.submit();
+    
+    // Show confirmation immediately (since we can't get response)
+    showOrderConfirmation('ORD-' + Date.now(), orderData.amount);
+    clearCart();
+    showSuccessNotification('Order submitted successfully!');
+    
+    // Clean up after 1 second
+    setTimeout(() => {
+      try {
+        document.body.removeChild(form);
+      } catch (e) {
+        console.log("Form already removed");
+      }
+    }, 1000);
+
+  } catch (error) {
+    console.error('Submission error:', error);
+    showErrorNotification(`Order failed: ${error.message}`);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Place Order';
+  }
 }
+
 
 // ========== VALIDATION FUNCTION ========== //
 function validateCustomerInfo() {

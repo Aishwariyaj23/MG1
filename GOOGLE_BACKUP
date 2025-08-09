@@ -7,7 +7,7 @@
 // CONFIGURATION
 // ======================
 const CONFIG = {
-  SPREADSHEET_ID: "1nlNFnKf-ai3AOGF8-NR45_FZcdOCKHbt5KTt6p_t0-w",
+  SPREADSHEET_ID: "1Le-LIcGwuAtDKL8v-rNSKD2ENCLx3TjOsX5gmc0T61Q",
   SHEET_NAME: "Orders",
   ADMIN_EMAIL: "aishauramicrogreens@gmail.com",
   BUSINESS_NAME: "Aishaura Microgreens",
@@ -52,22 +52,11 @@ const WHATSAPP_TEMPLATES = {
 // ======================
 function doPost(e) {
   try {
-    // 1. Parse incoming data
-    const params = e.postData ? 
-      JSON.parse(e.postData.contents) : 
-      e.parameter;
+    // Parse incoming data
+    const params = e.postData ? JSON.parse(e.postData.contents) : e.parameter;
     
-    // 2. Validate required fields
-    if (!params.phone || !params.amount) {
-      throw new Error("Missing required fields: phone and amount");
-    }
-
-    // 3. Generate order details
+    // Generate order ID and prepare data
     const orderId = generateOrderId();
-    const paymentLink = generateUPILink(params.amount, orderId);
-    const qrCode = generateQRCode(paymentLink);
-    
-    // 4. Prepare order data for sheet
     const orderData = [
       new Date(),
       orderId,
@@ -77,55 +66,42 @@ function doPost(e) {
       params.quantity || "1",
       params.address || "",
       params.notes || "",
-      WHATSAPP_TEMPLATES.ORDER_CONFIRMED.trigger,
+      params.payment_method === 'upi' ? 'Pending UPI Payment' : 'Pending COD',
       "Pending",
       params.email || "",
       parseFloat(params.amount).toFixed(2),
       params.payment_method || "UPI",
-      paymentLink,
-      `=IMAGE("${qrCode}")`,
-      "", // WhatsApp message placeholder
-      ""  // UTR reference placeholder
+      "", "", "", ""
     ];
 
-    // 5. Write to Google Sheet
-    const sheet = getSheet();
+    // Write to sheet
+    const sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
     sheet.appendRow(orderData);
-    
-    // 6. Send notifications
-    sendInitialNotifications(orderId, params, paymentLink, qrCode);
-    
-    // 7. Return success response
-    const response = {
+
+    // Send email if available
+    if (params.email) {
+      sendOrderConfirmationEmail(params.email, orderId, params.name, params.amount);
+    }
+
+    // Return simple JSON response
+    return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      orderId: orderId,
-      message: "Order processed successfully"
-    };
-    
-    return ContentService.createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON);
-    
+      orderId: orderId
+    })).setMimeType(ContentService.MimeType.JSON);
+
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
       message: error.message
-    }))
-    .setMimeType(ContentService.MimeType.JSON);
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-// Add this separate function for CORS headers
 function doOptions() {
-  return ContentService.createTextOutput()
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
+  return HtmlService.createHtmlOutput()
+    .setContent('') // Empty content for preflight
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-
-
 
 // ======================
 // NOTIFICATION SYSTEM
@@ -419,5 +395,41 @@ function onEdit(e) {
     const orderId = sheet.getRange(row, 2).getValue();
     const newStatus = range.getValue();
     storeWhatsAppMessage(orderId, newStatus);
+  }
+}
+
+function testDoPost() {
+  const mockData = {
+    parameter: {
+      name: "Test Customer",
+      phone: "9876543210",
+      email: "test@example.com",
+      address: "123 Test St",
+      product: "Sunflower Microgreens",
+      quantity: "100",
+      amount: "100.00",
+      payment_method: "upi",
+      notes: "Test order from script"
+    }
+  };
+  
+  Logger.log("Starting test...");
+  const result = doPost(mockData);
+  Logger.log("Response: " + result.getContent());
+  
+  // Verify the sheet
+  const sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
+  const data = sheet.getDataRange().getValues();
+  const lastRow = data[data.length-1];
+  Logger.log("Last row in sheet: " + lastRow);
+}
+function testSheetAccess() {
+  try {
+    const sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSheetByName(CONFIG.SHEET_NAME);
+    const testData = [new Date(), "TEST", "Access Test"];
+    sheet.appendRow(testData);
+    Logger.log("Successfully wrote test data to sheet");
+  } catch (e) {
+    Logger.log("Sheet access error: " + e.toString());
   }
 }
