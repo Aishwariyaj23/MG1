@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <header aria-label="Site logo and brand title">
@@ -253,6 +253,7 @@
     <div class="checkout-steps">
       <div class="step active" data-step="1">1. Review Order</div>
       <div class="step" data-step="2">2. Customer Info</div>
+        <div id="qrcode"></div>
       <div class="step" data-step="3">3. Payment</div>
     </div>
     
@@ -321,11 +322,16 @@
             <div class="payment-icon">💳</div>
             <div class="payment-details">
               <h3>UPI Payment</h3>
+               <div class="qrcode" id="qrcode"></div>
+               <div id="upi-qr-wrapper" style="display:flex; justify-content:center; margin:15px 0;">
+  <div id="upi-qr-code"></div>
+               
               <p>Pay instantly using any UPI app</p>
+              
               <div class="upi-details" id="upi-details">
                 <p>Scan this QR code or click below to pay with any UPI app:</p>
-                <div class="upi-qr-code" id="upi-qr-code"></div>
-                <div class="upi-id">UPI ID: shashi.shashi7271@ybl</div>
+               
+                <div class="upi-id">UPI ID: 9738082343-0@airtel</div>
                 <button class="upi-pay-button" id="upi-pay-button">Pay with UPI App</button>
               </div>
             </div>
