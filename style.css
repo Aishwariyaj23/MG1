@@ -693,16 +693,19 @@ h2 {
   display: block;
 }
 
-.upi-qr-code {
-  width: 150px;
-  height: 150px;
-  margin: 1rem auto;
-  padding: 10px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+/* Center the QR code inside the UPI Payment block */
+.upi-qr {
   display: flex;
   justify-content: center;
+  align-items: center;
+  margin: 15px 0;
+}
+
+/* Make sure the generated QR <img> or <canvas> stays centered */
+.upi-qr img,
+.upi-qr canvas {
+  display: block;
+  margin: 0 auto;
 }
 
 .upi-id {
