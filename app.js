@@ -5,15 +5,17 @@
 // ========== QR Code library handling with robust loading ========== //
 let qrCodeLoaded = typeof QRCode !== 'undefined';
 
+// Load QRCode library dynamically if not present
 if (!qrCodeLoaded) {
     console.log('QRCode library not loaded - loading dynamically');
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'; // ✅ correct library
     script.onload = () => {
         qrCodeLoaded = true;
         console.log('QRCode library successfully loaded');
-        // If a checkout modal is open and on step 3, re-generate QR code
-        if (document.getElementById('checkout-modal').style.display === 'block' && currentCheckoutStep === 3) {
+
+        // If modal is open and step = 3, generate QR
+        if (isCheckoutStepThree()) {
             generatePaymentQRCode();
         }
     };
@@ -22,7 +24,6 @@ if (!qrCodeLoaded) {
     };
     document.head.appendChild(script);
 }
-
 // ========== CONFIGURATION & DATA ========== //
 console.log('Initializing microgreens application');
 const storedCart = localStorage.getItem('microgreensCart');
@@ -682,44 +683,63 @@ function setupCheckout() {
         document.body.style.overflow = 'auto';
     });
 }
+function isCheckoutStepThree() {
+    const modal = document.getElementById('checkout-modal');
+    return modal && modal.style.display === 'block' && window.currentCheckoutStep === 3;
+}
 
+
+const UPI_ID = '9738082343-0@airtel';         // <-- put your real UPI ID here
+const PAYEE_NAME = 'Aishaura Microgreens';    // shown in UPI apps
+const UPI_NOTE = 'Microgreens Order';
 
 function generatePaymentQRCode() {
-    const total = calculateOrderTotal();
-    const qrContainer = document.getElementById('upi-qr-code');
-    qrContainer.innerHTML = ''; // Clear previous QR code or fallback
+  // only look for the QR inside Step 3
+  const qrContainer = document.querySelector('#step-3 #qrcode');
+  if (!qrContainer) {
+    console.warn('QR container not found in step 3');
+    return;
+  }
 
-    // Always show the fallback first or as main content until QR is generated
-    showQRCodeFallback(qrContainer, total);
+  qrContainer.innerHTML = '';
 
-    // Then try to generate QR code if library is available
-    if (qrCodeLoaded && typeof QRCode !== 'undefined') {
-        try {
-            const qrData = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-            new QRCode(qrContainer, { // This will replace the fallback content
-                text: qrData,
-                width: 150,
-                height: 150,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        } catch (error) {
-            console.error('QR code generation failed:', error);
-            // If QR generation fails, ensure fallback is still visible
-            showQRCodeFallback(qrContainer, total);
-        }
-    }
+  const total = calculateOrderTotal();
+  const upiLink =
+    `upi://pay?pa=${encodeURIComponent(UPI_ID)}` +
+    `&pn=${encodeURIComponent(PAYEE_NAME)}` +
+    `&am=${total.toFixed(2)}&cu=INR&tn=${encodeURIComponent(UPI_NOTE)}`;
+
+  // if library missing, show fallback
+  if (typeof QRCode === 'undefined') {
+    showQRCodeFallback(qrContainer, total, upiLink);
+    return;
+  }
+
+  new QRCode(qrContainer, {
+    text: upiLink,
+    width: 200,
+    height: 200,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  const payBtn = document.getElementById('upi-pay-button');
+  if (payBtn) {
+    payBtn.onclick = () => window.open(upiLink, '_blank');
+  }
 }
+
 
 function showQRCodeFallback(qrContainer, total) {
     // This will be displayed if QR code library isn't loaded or fails.
     qrContainer.innerHTML = `
         <div class="upi-fallback">
             <p>Please send payment to:</p>
-            <p class="upi-id">shashi.shashi7271@ybl</p>
-            <p>Amount: ₹${total.toFixed(2)}</p>
-            <button id="manual-upi-pay" class="upi-pay-button">Pay with UPI App</button>
+            <p class="upi-id">${UPI_ID}</p>
+      <p>Amount: ₹${total.toFixed(2)}</p>
+      <button id="manual-upi-pay" class="upi-pay-button">Pay with UPI App</button>
+    </div>
         </div>
     `;
 
