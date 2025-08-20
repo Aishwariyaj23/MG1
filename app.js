@@ -669,11 +669,11 @@ function setupCheckout() {
     });
 
     // Direct UPI pay button (from current modal, for quick access)
-    document.getElementById('upi-pay-button').addEventListener('click', function() {
-        const total = calculateOrderTotal();
-        const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
-        //window.open(upiLink, '_blank');
-    });
+    // document.getElementById('upi-pay-button').addEventListener('click', function() {
+    //     const total = calculateOrderTotal();
+    //     const upiLink = `upi://pay?pa=shashi.shashi7271@ybl&pn=Aishaura%20Microgreens&am=${total.toFixed(2)}&cu=INR&tn=Microgreens%20Order`;
+    //     //window.open(upiLink, '_blank');
+    // });
 
     document.getElementById('btn-place-order').addEventListener('click', submitOrder);
 
@@ -893,7 +893,7 @@ async function submitOrder() {
 console.log("Server response:", result); // Add this before showing alert
 
     // Show success message
-    alert(`Order Successful!\n\nOrder ID: ${result.orderId}\nAmount: ₹${result.amount || orderData.amount}`);
+    alert(`Thank you for your purchase!\n\n Your order has been successfully placed. Order and payment details will be sent to you shortly via WhatsApp\n\nOrder ID: ${result.orderId}\nAmount: ₹${result.amount || orderData.amount}`);
 
     // Clear cart
     clearCart();
