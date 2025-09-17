@@ -223,7 +223,7 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyRRP5slA6li9_h34DPh7_mE9Np7IWEqOT1yGMZ0Ydmqa4jYyZ70jxNNBzD2YFMXeF/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyaXzkzgg7-02Pr3uP57ComlaPPRsT4VBYDvSkGrc8qDQwchMuiJQeCRN6Amc9VLLKb/exec";
 
 // Cart functionality
 let cart = [];
