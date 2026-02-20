@@ -27,7 +27,7 @@ function ensureProductHeaders(sheet) {
   try {
     const expected = [
       'Product Name', 'Price', 'Image', 'Description', 'Benefits', 'Usage',
-      'Original Price', 'Storage', 'Shelf Life', 'Quantity Available',
+      'Original Price', 'Storage', 'Shelf Life', 'Reserved',
       'Trust Badges', 'Calories', 'Protein', 'Fiber', 'Vitamin E',
       'Harvest Date', 'Next Delivery Slot', 'Storage Guidance'
     ];
@@ -89,16 +89,11 @@ function doGet(e) {
         availableSheets: listAllSheets(),
         documentAccessible: true
       };
-    } else if (action === 'updateQuantity') {
-      // Update product quantity after order
-      const productName = e.parameter.product;
-      const quantityReduction = parseFloat(e.parameter.reduction) || 1;
-      response = reduceProductQuantity(productName, quantityReduction);
     } else if (action === 'sheet-debug') {
       // Debug: Show raw sheet data
       response = debugSheetData();
     } else {
-      response = { error: 'Invalid action', availableActions: ['all', 'products', 'reviews', 'sheets', 'debug', 'sheet-debug', 'updateQuantity'] };
+      response = { error: 'Invalid action', availableActions: ['all', 'products', 'reviews', 'sheets', 'debug', 'sheet-debug'] };
     }
 
     // Return JSON response
@@ -423,7 +418,7 @@ function getRecommendedEnhancementDefaults(productName, shelfLife, storage) {
  * Convert a products-sheet row into normalized product object.
  * Column order:
  * A Name, B Price, C Image, D Description, E Benefits, F Usage, G Original Price,
- * H Storage, I Shelf Life, J Quantity, K Trust Badges, L Calories, M Protein,
+ * H Storage, I Shelf Life, J Reserved, K Trust Badges, L Calories, M Protein,
  * N Fiber, O Vitamin E, P Harvest Date, Q Next Delivery Slot, R Storage Guidance
  */
 function mapProductRow(row, productName) {
@@ -439,11 +434,6 @@ function mapProductRow(row, productName) {
   if (row[6]) product.originalPrice = parseFloat(row[6]) || product.price;
   if (row[7]) product.storage = row[7].toString().trim();
   if (row[8]) product.shelfLife = row[8].toString().trim();
-  if (row[9] !== undefined && row[9] !== null && row[9] !== '') {
-    product.quantityAvailable = row[9].toString().trim();
-  } else {
-    product.quantityAvailable = '0';
-  }
 
   if (row[10]) product.trustBadges = parseSemicolonList(row[10].toString());
   product.nutritionInfo = {
@@ -469,68 +459,6 @@ function calculateAvgRating(reviews) {
   const sum = reviews.reduce((total, review) => total + (review.rating || 0), 0);
   const avg = sum / reviews.length;
   return Math.round(avg * 10) / 10; // Round to 1 decimal place
-}
-
-/**
- * Reduce product quantity after order
- * Finds the product row and subtracts from column J (Quantity Available)
- */
-function reduceProductQuantity(productName, reduction) {
-  try {
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    const sheet = ss.getSheetByName(PRODUCTS_SHEET);
-
-    if (!sheet) {
-      return {
-        success: false,
-        error: `Sheet "${PRODUCTS_SHEET}" not found`
-      };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const cleanProductName = productName.toString().trim();
-    let productRow = -1;
-
-    // Find the product row
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] && data[i][0].toString().trim() === cleanProductName) {
-        productRow = i;
-        break;
-      }
-    }
-
-    if (productRow === -1) {
-      return {
-        success: false,
-        error: `Product "${cleanProductName}" not found`,
-        product: cleanProductName
-      };
-    }
-
-    // Column J is index 9 (Quantity Available)
-    const currentQuantity = data[productRow][9] ? parseInt(data[productRow][9]) : 0;
-    const newQuantity = Math.max(0, currentQuantity - reduction);
-
-    // Update the quantity cell
-    sheet.getRange(productRow + 1, 10).setValue(newQuantity);
-
-    Logger.log(`Updated ${cleanProductName}: ${currentQuantity} -> ${newQuantity}`);
-
-    return {
-      success: true,
-      product: cleanProductName,
-      previousQuantity: currentQuantity,
-      newQuantity: newQuantity,
-      reduction: reduction,
-      timestamp: new Date().toISOString()
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.toString(),
-      product: productName
-    };
-  }
 }
 
 // ============================================
@@ -561,7 +489,7 @@ function debugSheetData() {
       row['Col G (Orig Price)'] = data[i][6] || '';
       row['Col H (Storage)'] = data[i][7] || '';
       row['Col I (Shelf Life)'] = data[i][8] || '';
-      row['Col J (Qty)'] = data[i][9] !== undefined ? data[i][9] : 'UNDEFINED';
+      row['Col J'] = data[i][9] !== undefined ? data[i][9] : 'UNDEFINED';
       row['Col K (Trust Badges)'] = data[i][10] || '';
       row['Col L (Calories)'] = data[i][11] || '';
       row['Col M (Protein)'] = data[i][12] || '';
@@ -579,7 +507,7 @@ function debugSheetData() {
       totalRows: data.length,
       lastColumn: sheet.getLastColumn(),
       rawData: rawData,
-      message: 'Column J should contain quantity - check "Qty" values above'
+      message: 'First 10 rows preview'
     };
   } catch (error) {
     return {

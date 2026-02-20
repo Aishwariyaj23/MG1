@@ -288,7 +288,7 @@ function setupProductFilters() {
 }
 
 function applyProductFilter() {
-  const cards = document.querySelectorAll('#products-gallery .card[data-stock-status]');
+  const cards = document.querySelectorAll('#products-gallery .card');
   const gallery = document.getElementById('products-gallery');
   const existingEmpty = document.getElementById('products-filter-empty');
   if (!cards.length) {
@@ -299,7 +299,6 @@ function applyProductFilter() {
   let visibleCount = 0;
 
   cards.forEach((card) => {
-    const stockStatus = card.getAttribute('data-stock-status');
     const rating = parseFloat(card.getAttribute('data-rating') || '0');
     const hasOffer = card.getAttribute('data-offer') === 'true';
     let show = true;
@@ -307,12 +306,6 @@ function applyProductFilter() {
     switch (activeProductFilter) {
       case 'top-rated':
         show = rating >= 4.5;
-        break;
-      case 'in-stock':
-        show = stockStatus !== 'out-of-stock';
-        break;
-      case 'low-stock':
-        show = stockStatus === 'low-stock';
         break;
       case 'offers':
         show = hasOffer;
@@ -376,32 +369,6 @@ function renderProductsToGallery() {
       priceHTML += `<span class="original-price">${formatCurrency(product.originalPrice)}</span>`;
     }
 
-    // Calculate stock status
-    let quantityText = product.quantityAvailable ? product.quantityAvailable.toString().trim() : '0';
-    let quantityNum = parseInt(quantityText);
-    // Safety check: if parseInt returns NaN, default to 0
-    if (isNaN(quantityNum)) quantityNum = 0;
-    
-    console.log(`Product: ${product.name}, quantityAvailable: "${product.quantityAvailable}", quantityNum: ${quantityNum}`);
-    
-    let stockStatus = 'available';
-    let stockBadge = '';
-    let stockClass = '';
-    let buttonText = '+ Add to Cart';
-    let buttonDisabled = false;
-
-    if (quantityNum <= 0) {
-      stockStatus = 'out-of-stock';
-      stockBadge = '<span class="stock-badge out-of-stock">Out of Stock</span>';
-      stockClass = 'out-of-stock';
-      buttonText = 'Out of Stock';
-      buttonDisabled = true;
-    } else if (quantityNum <= 15) {
-      stockStatus = 'low-stock';
-      stockBadge = '<span class="stock-badge low-stock">Low Stock</span>';
-      stockClass = 'low-stock';
-    }
-
     // Build rating stars (simplified)
     const rating = Number(product.rating || 0);
     const displayRating = rating > 0 ? rating : 5;
@@ -412,40 +379,27 @@ function renderProductsToGallery() {
     const tagsHTML = productTags.length
       ? `<div class="product-tags">${productTags.map((tag) => `<span class="product-tag ${tag.className}">${tag.label}</span>`).join('')}</div>`
       : '';
-    const stockUnitsText = `${quantityNum} ${quantityNum === 1 ? 'unit' : 'units'}`;
-
-    // Create product card HTML with stock info
+    // Create product card HTML
     const cardHTML = `
-      <div class="card ${stockClass}" role="listitem" data-stock-status="${stockStatus}" data-rating="${rating}" data-offer="${isOffer}">
+      <div class="card" role="listitem" data-rating="${rating}" data-offer="${isOffer}">
         <img src="${product.image || 'images/default.jpg'}" alt="${productName}">
         <div class="card-rating">
           <span class="stars">${ratingStars}</span>
           <span class="rating-count">(${reviewCount})</span>
         </div>
-        ${stockBadge}
         <div class="gallery-title">${productName}</div>
         ${tagsHTML}
         <div class="product-price">
           ${priceHTML}
           ${discountHTML}
         </div>
-        <div class="stock-quantity-box" aria-label="Stock units">
-          <div class="stock-quantity-content">
-            <span class="quantity-icon"><i class="fa-solid fa-box"></i></span>
-            <div class="quantity-info">
-              <span class="quantity-label">Available Stock</span>
-              <span class="quantity-value">${stockUnitsText}</span>
-              <span class="quantity-note">1 unit = 50 gm</span>
-            </div>
-          </div>
-        </div>
         <div class="quantity-selector">
-          <button class="quantity-btn minus" ${buttonDisabled ? 'disabled' : ''}>-</button>
-          <input type="number" value="50" min="50" step="50" class="quantity-input" ${buttonDisabled ? 'disabled' : ''}>
+          <button class="quantity-btn minus">-</button>
+          <input type="number" value="50" min="50" step="50" class="quantity-input">
           <span class="quantity-unit">gm</span>
-          <button class="quantity-btn plus" ${buttonDisabled ? 'disabled' : ''}>+</button>
+          <button class="quantity-btn plus">+</button>
         </div>
-        <button class="add-to-cart" data-product="${productName}" data-price="${product.price}" data-quantity="${quantityNum}" ${buttonDisabled ? 'disabled' : ''}>${buttonText}</button>
+        <button class="add-to-cart" data-product="${productName}" data-price="${product.price}">+ Add to Cart</button>
       </div>
     `;
 
@@ -1258,28 +1212,14 @@ function initializeModal() {
 
                 // Add additional product information if available
                 let additionalInfo = '';
-                let quantityNum = parseInt(product.quantityAvailable) || 0;
-                let stockStatus = 'available';
                 
-                if (product.storage || product.shelfLife || product.quantityAvailable) {
+                if (product.storage || product.shelfLife) {
                   additionalInfo = '<div class="product-info-box">';
                   if (product.storage) {
                     additionalInfo += `<div class="info-item"><strong>Storage:</strong> ${product.storage}</div>`;
                   }
                   if (product.shelfLife) {
                     additionalInfo += `<div class="info-item"><strong>Shelf Life:</strong> ${product.shelfLife}</div>`;
-                  }
-                  if (product.quantityAvailable) {
-                    const quantityText = product.quantityAvailable.toString().trim();
-                    if (quantityNum <= 0) {
-                      stockStatus = 'out-of-stock';
-                      additionalInfo += `<div class="info-item"><strong style="color: #f44336;">Stock Status:</strong> <span style="color: #f44336;">Out of Stock</span></div>`;
-                    } else if (quantityNum <= 15) {
-                      stockStatus = 'low-stock';
-                      additionalInfo += `<div class="info-item"><strong style="color: #ff9800;">Stock Status:</strong> <span style="color: #ff9800;">Low Stock - Only ${quantityText} units left! (1 unit = 50 gm)</span></div>`;
-                    } else {
-                      additionalInfo += `<div class="info-item"><strong>Available:</strong> ${quantityText} units (1 unit = 50 gm)</div>`;
-                    }
                   }
                   additionalInfo += '</div>';
                 }
@@ -1312,26 +1252,16 @@ function initializeModal() {
                 document.querySelector('#product-modal .quantity-input').value = 50;
                 setupModalQuantityHelper(product);
                 
-                // Disable/enable button based on stock status
+                // Ensure modal controls are always enabled
                 const addToCartBtn = document.getElementById('add-to-cart-modal');
                 const quantityInput = document.querySelector('#product-modal .quantity-input');
                 const quantityBtns = document.querySelectorAll('#product-modal .quantity-btn');
-                
-                if (quantityNum <= 0) {
-                  addToCartBtn.disabled = true;
-                  addToCartBtn.textContent = 'Out of Stock';
-                  addToCartBtn.style.background = '#ccc';
-                  addToCartBtn.style.cursor = 'not-allowed';
-                  quantityInput.disabled = true;
-                  quantityBtns.forEach(btn => btn.disabled = true);
-                } else {
-                  addToCartBtn.disabled = false;
-                  addToCartBtn.textContent = '+ Add to Cart';
-                  addToCartBtn.style.background = '';
-                  addToCartBtn.style.cursor = 'pointer';
-                  quantityInput.disabled = false;
-                  quantityBtns.forEach(btn => btn.disabled = false);
-                }
+                addToCartBtn.disabled = false;
+                addToCartBtn.textContent = '+ Add to Cart';
+                addToCartBtn.style.background = '';
+                addToCartBtn.style.cursor = 'pointer';
+                quantityInput.disabled = false;
+                quantityBtns.forEach((btn) => { btn.disabled = false; });
 
                 document.getElementById('add-to-cart-modal').onclick = function() {
                     const quantity = parseInt(document.querySelector('#product-modal .quantity-input').value);
@@ -1623,51 +1553,6 @@ function clearCart() {
     document.getElementById('cart-dropdown').classList.remove('show');
     document.body.classList.remove('cart-open');
     // Note: Modal will be closed when user clicks "Continue Shopping" button
-}
-
-/**
- * Reduce product quantities in Google Sheets after successful order
- * Called before clearing cart
- */
-async function reduceOrderedQuantities(orderCart) {
-  try {
-    console.log('Reducing quantities for products:', orderCart);
-    
-    for (const item of orderCart) {
-      const product = item.product;
-      // Calculate packs being ordered (50g = 1 pack)
-      const packsOrdered = Math.ceil(item.quantity / 50);
-      const quantityReduction = packsOrdered;
-      
-      console.log(`[QUANTITY REDUCE] ${product}: ${item.quantity}g = ${packsOrdered} packs to reduce`);
-      
-      const url = `${GOOGLE_PRODUCTS_API_BASE_URL}?action=updateQuantity&product=${encodeURIComponent(product)}&reduction=${quantityReduction}`;
-      
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          mode: 'cors',
-          credentials: 'omit'
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            console.log(`✓ Quantity updated for ${product}: ${result.previousQuantity} -> ${result.newQuantity} (reduced by ${quantityReduction} packs)`);
-          } else {
-            console.warn(`Could not update quantity for ${product}:`, result.error);
-          }
-        }
-      } catch (fetchErr) {
-        console.warn(`Error reducing quantity for ${product}:`, fetchErr);
-        // Continue with other products even if one fails
-      }
-    }
-  } catch (err) {
-    console.error('Error in reduceOrderedQuantities:', err);
-    // Don't block cart clearing if quantity reduction fails
-  }
 }
 
 function updateCartDisplay() {
@@ -2030,9 +1915,6 @@ console.log("Server response:", result); // Add this before showing alert
     const totalAmount = parseFloat(result.amount || orderData.amount);
     showOrderConfirmation(result.orderId, totalAmount, orderData.phone);
 
-    // Reduce quantities in Google Sheets for ordered products
-    await reduceOrderedQuantities(cart);
-
     // Clear cart after brief delay
     setTimeout(() => {
       clearCart();
@@ -2123,22 +2005,22 @@ async function continueShoppingAfterOrder() {
     // Show loading notification
     showCartNotification({
       kind: 'info',
-      title: 'Syncing inventory',
-      message: 'Fetching the latest stock from farm sheets...'
+      title: 'Refreshing products',
+      message: 'Fetching the latest product data from farm sheets...'
     });
     renderProductSkeletons(4);
     
     // Fetch fresh product data
     await fetchProductDataFromSheets();
     
-    // Re-render products with updated quantities
+    // Re-render products with latest data
     renderProductsToGallery();
     
-    console.log('✓ Product inventory refreshed successfully');
+    console.log('✓ Product list refreshed successfully');
     showCartNotification({
       kind: 'success',
-      title: 'Inventory updated',
-      message: 'Latest stock levels are now live on your product list.'
+      title: 'Products updated',
+      message: 'Latest product details are now live on your list.'
     });
     
     // Scroll to products section
@@ -2154,7 +2036,7 @@ async function continueShoppingAfterOrder() {
     // Still close modal even if refresh fails
     document.getElementById('checkout-modal').style.display = 'none';
     document.body.style.overflow = 'auto';
-    showErrorNotification('Could not refresh inventory, but order placed successfully');
+    showErrorNotification('Could not refresh products, but order placed successfully');
   }
 }
 
