@@ -223,6 +223,19 @@ function loadFallbackData() {
   productData = {};
 }
 
+function formatCurrency(value, options = {}) {
+  const amount = Number(value);
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const minimumFractionDigits = Number.isFinite(options.minimumFractionDigits)
+    ? options.minimumFractionDigits
+    : (Number.isInteger(safeAmount) ? 0 : 2);
+  const maximumFractionDigits = Number.isFinite(options.maximumFractionDigits)
+    ? options.maximumFractionDigits
+    : 2;
+
+  return `INR ${safeAmount.toLocaleString('en-IN', { minimumFractionDigits, maximumFractionDigits })}`;
+}
+
 function renderProductSkeletons(count = 6) {
   const gallery = document.getElementById('products-gallery');
   if (!gallery) return;
@@ -351,16 +364,16 @@ function renderProductsToGallery() {
   Object.keys(productData).forEach((productName) => {
     const product = productData[productName];
     
-    console.log(`[RENDERING] ${productName} - Price in productData: ₹${product.price}`);
+    console.log(`[RENDERING] ${productName} - Price in productData: ${formatCurrency(product.price)}`);
     
     // Calculate discount percentage (if original price is available)
     let discountHTML = '';
-    let priceHTML = `<span class="discounted-price">₹${product.price}</span>`;
+    let priceHTML = `<span class="discounted-price">${formatCurrency(product.price)}</span>`;
     
     if (product.originalPrice && product.originalPrice > product.price) {
       const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
       discountHTML = `<span class="savings-badge">${discountPercent}% OFF</span>`;
-      priceHTML += `<span class="original-price">₹${product.originalPrice}</span>`;
+      priceHTML += `<span class="original-price">${formatCurrency(product.originalPrice)}</span>`;
     }
 
     // Calculate stock status
@@ -379,13 +392,13 @@ function renderProductsToGallery() {
 
     if (quantityNum <= 0) {
       stockStatus = 'out-of-stock';
-      stockBadge = '<span class="stock-badge out-of-stock">❌ Out of Stock</span>';
+      stockBadge = '<span class="stock-badge out-of-stock">Out of Stock</span>';
       stockClass = 'out-of-stock';
-      buttonText = '× Out of Stock';
+      buttonText = 'Out of Stock';
       buttonDisabled = true;
     } else if (quantityNum <= 15) {
       stockStatus = 'low-stock';
-      stockBadge = '<span class="stock-badge low-stock">⚠️ Low Stock</span>';
+      stockBadge = '<span class="stock-badge low-stock">Low Stock</span>';
       stockClass = 'low-stock';
     }
 
@@ -399,6 +412,7 @@ function renderProductsToGallery() {
     const tagsHTML = productTags.length
       ? `<div class="product-tags">${productTags.map((tag) => `<span class="product-tag ${tag.className}">${tag.label}</span>`).join('')}</div>`
       : '';
+    const stockUnitsText = `${quantityNum} ${quantityNum === 1 ? 'unit' : 'units'}`;
 
     // Create product card HTML with stock info
     const cardHTML = `
@@ -414,6 +428,16 @@ function renderProductsToGallery() {
         <div class="product-price">
           ${priceHTML}
           ${discountHTML}
+        </div>
+        <div class="stock-quantity-box" aria-label="Stock units">
+          <div class="stock-quantity-content">
+            <span class="quantity-icon"><i class="fa-solid fa-box"></i></span>
+            <div class="quantity-info">
+              <span class="quantity-label">Available Stock</span>
+              <span class="quantity-value">${stockUnitsText}</span>
+              <span class="quantity-note">1 unit = 50 gm</span>
+            </div>
+          </div>
         </div>
         <div class="quantity-selector">
           <button class="quantity-btn minus" ${buttonDisabled ? 'disabled' : ''}>-</button>
@@ -1089,7 +1113,7 @@ function renderProductEnhancementsInModal(product) {
         ? product.trustBadges
         : ['100% Chemical-Free', 'Harvested Fresh', 'Local Farm Delivery'];
 
-    const freshness = product.harvestDate || 'Freshly harvested in small batches';
+    const freshness = product.harvestDate || 'Harvest on delivery day';
     const bestBefore = product.shelfLife || 'Best consumed within 7 days';
     const nextDelivery = product.nextDeliverySlot || 'Next delivery slot: Friday evening';
     const storage = product.storage || 'Refrigerate in an airtight box';
@@ -1161,7 +1185,7 @@ function updateModalQuantityHelper() {
     const quantity = Math.max(50, parseInt(input.value, 10) || 50);
     const unitPrice = parseFloat(activeModalProduct.price) || 0;
     const total = ((quantity / 50) * unitPrice).toFixed(2);
-    helper.textContent = `${quantity}g = ₹${total}`;
+    helper.textContent = `${quantity}g = ${formatCurrency(total, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function setupModalQuantityHelper(product) {
@@ -1229,7 +1253,7 @@ function initializeModal() {
                 document.getElementById('modal-image').src = product.image;
                 document.getElementById('modal-image').alt = productName;
                 document.getElementById('modal-title').textContent = productName;
-                document.getElementById('modal-price').textContent = `₹${product.price} per 50g`;
+                document.getElementById('modal-price').textContent = `${formatCurrency(product.price)} per 50g`;
                 document.getElementById('modal-description').textContent = product.description;
 
                 // Add additional product information if available
@@ -1240,21 +1264,21 @@ function initializeModal() {
                 if (product.storage || product.shelfLife || product.quantityAvailable) {
                   additionalInfo = '<div class="product-info-box">';
                   if (product.storage) {
-                    additionalInfo += `<div class="info-item"><strong>🧊 Storage:</strong> ${product.storage}</div>`;
+                    additionalInfo += `<div class="info-item"><strong>Storage:</strong> ${product.storage}</div>`;
                   }
                   if (product.shelfLife) {
-                    additionalInfo += `<div class="info-item"><strong>⏱️ Shelf Life:</strong> ${product.shelfLife}</div>`;
+                    additionalInfo += `<div class="info-item"><strong>Shelf Life:</strong> ${product.shelfLife}</div>`;
                   }
                   if (product.quantityAvailable) {
                     const quantityText = product.quantityAvailable.toString().trim();
                     if (quantityNum <= 0) {
                       stockStatus = 'out-of-stock';
-                      additionalInfo += `<div class="info-item"><strong style="color: #f44336;">❌ Stock Status:</strong> <span style="color: #f44336;">Out of Stock</span></div>`;
+                      additionalInfo += `<div class="info-item"><strong style="color: #f44336;">Stock Status:</strong> <span style="color: #f44336;">Out of Stock</span></div>`;
                     } else if (quantityNum <= 15) {
                       stockStatus = 'low-stock';
-                      additionalInfo += `<div class="info-item"><strong style="color: #ff9800;">⚠️ Stock Status:</strong> <span style="color: #ff9800;">Low Stock - Only ${quantityText} left!</span></div>`;
+                      additionalInfo += `<div class="info-item"><strong style="color: #ff9800;">Stock Status:</strong> <span style="color: #ff9800;">Low Stock - Only ${quantityText} units left! (1 unit = 50 gm)</span></div>`;
                     } else {
-                      additionalInfo += `<div class="info-item"><strong>📦 Available:</strong> ${quantityText}</div>`;
+                      additionalInfo += `<div class="info-item"><strong>Available:</strong> ${quantityText} units (1 unit = 50 gm)</div>`;
                     }
                   }
                   additionalInfo += '</div>';
@@ -1295,7 +1319,7 @@ function initializeModal() {
                 
                 if (quantityNum <= 0) {
                   addToCartBtn.disabled = true;
-                  addToCartBtn.textContent = '× Out of Stock';
+                  addToCartBtn.textContent = 'Out of Stock';
                   addToCartBtn.style.background = '#ccc';
                   addToCartBtn.style.cursor = 'not-allowed';
                   quantityInput.disabled = true;
@@ -1431,10 +1455,33 @@ function updateMiniCartBar() {
 
 function initializeCart() {
     const cartIcon = document.getElementById('cart-icon');
+    const cartDropdown = document.getElementById('cart-dropdown');
+    const cartContainer = document.getElementById('cart-container');
+    const cartClose = document.getElementById('cart-close');
     if (!cartIcon) return;
+    cartIcon.setAttribute('aria-expanded', 'false');
+
+    const openCartDrawer = () => {
+        if (!cartDropdown) return;
+        cartDropdown.classList.add('show');
+        cartIcon.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('cart-open');
+    };
+
+    const closeCartDrawer = () => {
+        if (!cartDropdown) return;
+        cartDropdown.classList.remove('show');
+        cartIcon.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('cart-open');
+    };
+
     cartIcon.addEventListener('click', function(event) {
         event.stopPropagation(); // Prevent document click from closing it immediately
-        document.getElementById('cart-dropdown').classList.toggle('show');
+        if (cartDropdown.classList.contains('show')) {
+            closeCartDrawer();
+        } else {
+            openCartDrawer();
+        }
     });
     cartIcon.addEventListener('keydown', function(event) {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -1443,12 +1490,22 @@ function initializeCart() {
         }
     });
 
+    if (cartClose) {
+        cartClose.addEventListener('click', function() {
+            closeCartDrawer();
+        });
+    }
+
     // Close cart dropdown if clicking outside
     document.addEventListener('click', function(event) {
-        const cartContainer = document.getElementById('cart-container');
-        const cartDropdown = document.getElementById('cart-dropdown');
         if (cartDropdown.classList.contains('show') && !cartContainer.contains(event.target)) {
-            cartDropdown.classList.remove('show');
+            closeCartDrawer();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && cartDropdown.classList.contains('show')) {
+            closeCartDrawer();
         }
     });
 
@@ -1456,7 +1513,7 @@ function initializeCart() {
 
     document.getElementById('view-cart').addEventListener('click', function() {
         showCheckoutModal();
-        document.getElementById('cart-dropdown').classList.remove('show');
+        closeCartDrawer();
     });
 
     document.getElementById('checkout-btn').addEventListener('click', function() {
@@ -1465,7 +1522,7 @@ function initializeCart() {
             return;
         }
         showCheckoutModal();
-        document.getElementById('cart-dropdown').classList.remove('show');
+        closeCartDrawer();
     });
 }
 
@@ -1564,6 +1621,7 @@ function clearCart() {
     localStorage.removeItem('microgreensCart');
     updateCartDisplay();
     document.getElementById('cart-dropdown').classList.remove('show');
+    document.body.classList.remove('cart-open');
     // Note: Modal will be closed when user clicks "Continue Shopping" button
 }
 
