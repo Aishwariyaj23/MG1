@@ -91,7 +91,10 @@ function doGet(e) {
       // Debug: Show raw sheet data
       response = debugSheetData();
     } else {
-      response = { error: 'Invalid action', availableActions: ['all', 'products', 'reviews', 'sheets', 'debug', 'sheet-debug'] };
+      response = {
+        error: 'We could not understand this request. Please refresh the page and try again.',
+        availableActions: ['all', 'products', 'reviews', 'sheets', 'debug', 'sheet-debug']
+      };
     }
 
     // Return JSON response

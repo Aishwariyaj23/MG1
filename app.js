@@ -518,13 +518,38 @@ const recipeData = {
 };
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyaXzkzgg7-02Pr3uP57ComlaPPRsT4VBYDvSkGrc8qDQwchMuiJQeCRN6Amc9VLLKb/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdTBvtcJ7wJJa86a7v-R27jnwsFY1UeUg1bWCzOhOo0oSfD5P8E9yvBWs-kjHVizFL/exec";
+// Auth Apps Script endpoint (DEPLOY google_auth_email_otp.gs and paste URL here)
+const AUTH_API_URL = "https://script.google.com/macros/s/AKfycbxJeFJtk-9Jiex-tTQf6aP7ZDevWiEPi2sm87_eHruhad4JSpvZaLq1mHuydpZ0qQZf/exec";
+const AUTH_STORAGE_KEY = "microgreensAuthSession";
+const AUTH_RESEND_COOLDOWN_SECONDS = 60;
+const REFERRAL_PRICING = {
+    enabled: true,
+    minOrderAmount: 199,
+    discountType: 'percent', // 'percent' or 'flat'
+    discountPercent: 10,
+    discountCap: 80,
+    flatDiscount: 60
+};
 
 // Cart functionality
 let cart = [];
 let currentCheckoutStep = 1; // Tracks current step in checkout modal
 let activeModalProduct = null; // For live quantity -> price helper in product modal
 let activeProductFilter = 'all';
+let authState = {
+    sessionToken: '',
+    user: null,
+    expiresAt: ''
+};
+let authOtpStepEnabled = false;
+let authResendUntilMs = 0;
+let authResendTimerId = null;
+let authNavBusy = false;
+let authMode = 'signin';
+let prefilledReferralCode = '';
+let authVerifyInProgress = false;
+let authUserMenuOpen = false;
 
 // ========== INITIALIZATION ========== //
 document.addEventListener('DOMContentLoaded', async function() {
@@ -554,6 +579,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         initializeMiniCart();
         setupProductQuantity(); // Setup quantity controls for all product cards
         setupCheckout(); // Setup checkout button listeners
+        await initAuth(); // Optional login flow, isolated from order flow
         updateCartDisplay(); // Initial display of cart items
 
         loadLogo();
@@ -574,6 +600,1169 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Application loaded with fallback data');
     }
 });
+
+// ========== AUTH (EMAIL OTP, OPTIONAL) ========== //
+function isAuthConfigured() {
+    const url = String(AUTH_API_URL || '').trim();
+    return url && !url.includes('PASTE_AUTH_WEBAPP_URL_HERE');
+}
+
+function getAuthUI() {
+    return {
+        navAction: document.getElementById('nav-auth-action'),
+        modal: document.getElementById('auth-modal'),
+        feedback: document.getElementById('auth-feedback'),
+        emailInput: document.getElementById('auth-email'),
+        otpInput: document.getElementById('auth-otp'),
+        otpHint: document.getElementById('auth-otp-hint'),
+        nameInput: document.getElementById('auth-name'),
+        phoneInput: document.getElementById('auth-phone'),
+        referralInput: document.getElementById('auth-referral'),
+        otpGroup: document.getElementById('auth-otp-group'),
+        nameGroup: document.getElementById('auth-name-group'),
+        phoneGroup: document.getElementById('auth-phone-group'),
+        referralGroup: document.getElementById('auth-referral-group'),
+        stepEmail: document.getElementById('auth-step-email'),
+        stepOtp: document.getElementById('auth-step-otp'),
+        sendOtpBtn: document.getElementById('auth-send-otp'),
+        verifyOtpBtn: document.getElementById('auth-verify-otp'),
+        modeSignInBtn: document.getElementById('auth-mode-signin'),
+        modeSignUpBtn: document.getElementById('auth-mode-signup'),
+        closeBtn: document.querySelector('#auth-modal .close-modal'),
+        userMenu: document.getElementById('nav-user-menu'),
+        userMenuReferBtn: document.getElementById('nav-user-refer'),
+        userMenuLogoutBtn: document.getElementById('nav-user-logout')
+    };
+}
+
+function getAuthDisplayName(user) {
+    if (!user) return 'User';
+    const shorten = (value) => {
+        const text = String(value || '').trim();
+        if (!text) return '';
+        return text.length > 14 ? `${text.slice(0, 14)}...` : text;
+    };
+    if (user.name && String(user.name).trim()) {
+        return shorten(String(user.name).trim().split(' ')[0]);
+    }
+    if (user.email && String(user.email).includes('@')) {
+        return shorten(String(user.email).split('@')[0]);
+    }
+    return 'User';
+}
+
+function closeAuthUserMenu() {
+    const ui = getAuthUI();
+    if (!ui.userMenu) return;
+    ui.userMenu.hidden = true;
+    authUserMenuOpen = false;
+    if (ui.navAction) ui.navAction.setAttribute('aria-expanded', 'false');
+}
+
+function openAuthUserMenu() {
+    const ui = getAuthUI();
+    if (!ui.userMenu || !isAuthLoggedIn()) return;
+    ui.userMenu.hidden = false;
+    authUserMenuOpen = true;
+    if (ui.navAction) ui.navAction.setAttribute('aria-expanded', 'true');
+}
+
+function toggleAuthUserMenu() {
+    if (authUserMenuOpen) {
+        closeAuthUserMenu();
+        return;
+    }
+    openAuthUserMenu();
+}
+
+function getCurrentReferralCode() {
+    return normalizeReferralCodeInput(authState?.user?.referral_code || '');
+}
+
+function buildReferralInviteLink(referralCode) {
+    const code = normalizeReferralCodeInput(referralCode);
+    if (!code) return '';
+    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    return `${baseUrl}?ref=${encodeURIComponent(code)}`;
+}
+
+function buildReferralWhatsAppLink(referralCode) {
+    const code = normalizeReferralCodeInput(referralCode);
+    if (!code) return '';
+    const inviteLink = buildReferralInviteLink(code);
+    const message = `Try Aishaura Microgreens. Use my referral code ${code} while signing up: ${inviteLink}`;
+    return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+async function copyTextToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch (err) {
+        const temp = document.createElement('textarea');
+        temp.value = String(text || '');
+        temp.setAttribute('readonly', '');
+        temp.style.position = 'absolute';
+        temp.style.left = '-9999px';
+        document.body.appendChild(temp);
+        temp.select();
+        let copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch (copyErr) {
+            copied = false;
+        }
+        document.body.removeChild(temp);
+        return copied;
+    }
+}
+
+function renderReferralCards() {
+    const referralCode = getCurrentReferralCode();
+    const cards = [
+        document.getElementById('cart-referral-card'),
+        document.getElementById('checkout-referral-card'),
+        document.getElementById('confirmation-referral-card')
+    ];
+
+    cards.forEach((card) => {
+        if (!card) return;
+        if (!isAuthLoggedIn() || !referralCode) {
+            card.style.display = 'none';
+            card.removeAttribute('data-referral-code');
+            const codeNodes = card.querySelectorAll('.referral-code-value');
+            codeNodes.forEach((node) => { node.textContent = '-'; });
+            return;
+        }
+        card.style.display = 'block';
+        card.setAttribute('data-referral-code', referralCode);
+        const codeNodes = card.querySelectorAll('.referral-code-value');
+        codeNodes.forEach((node) => { node.textContent = referralCode; });
+    });
+}
+
+function getReferralPricingForSubtotal(subtotal) {
+    const safeSubtotal = Math.max(0, Number(subtotal) || 0);
+    const hasAppliedReferral = !!normalizeReferralCodeInput(authState?.user?.referred_by_code || '');
+    if (!REFERRAL_PRICING.enabled || !isAuthLoggedIn() || !hasAppliedReferral) {
+        return { eligible: false, discount: 0, reason: 'not-linked' };
+    }
+    if (safeSubtotal < Number(REFERRAL_PRICING.minOrderAmount || 0)) {
+        return { eligible: false, discount: 0, reason: 'below-min-order' };
+    }
+
+    let discount = 0;
+    if (REFERRAL_PRICING.discountType === 'flat') {
+        discount = Number(REFERRAL_PRICING.flatDiscount || 0);
+    } else {
+        const percent = Math.max(0, Number(REFERRAL_PRICING.discountPercent || 0));
+        const cap = Math.max(0, Number(REFERRAL_PRICING.discountCap || 0));
+        discount = (safeSubtotal * percent) / 100;
+        if (cap > 0) {
+            discount = Math.min(discount, cap);
+        }
+    }
+
+    discount = Math.max(0, Math.min(safeSubtotal, Math.round(discount * 100) / 100));
+    return {
+        eligible: discount > 0,
+        discount: discount,
+        reason: discount > 0 ? 'applied' : 'zero'
+    };
+}
+
+function getPricingSummary() {
+    const subtotal = cart.reduce((total, item) => {
+        const itemTotal = (Number(item.quantity || 0) / 50) * Number(item.price || 0);
+        return total + itemTotal;
+    }, 0);
+    const referral = getReferralPricingForSubtotal(subtotal);
+    const total = Math.max(0, subtotal - referral.discount);
+    return {
+        subtotal: Math.round(subtotal * 100) / 100,
+        referralDiscount: referral.discount,
+        total: Math.round(total * 100) / 100,
+        referralEligible: referral.eligible,
+        referralReason: referral.reason
+    };
+}
+
+function openReferralFromMenu() {
+    if (!isAuthLoggedIn()) {
+        openAuthModal();
+        return;
+    }
+    closeAuthUserMenu();
+    showCheckoutModal();
+    showCheckoutStep(1);
+    renderReferralCards();
+}
+
+function initReferralUiActions() {
+    if (initReferralUiActions.initialized) return;
+    initReferralUiActions.initialized = true;
+
+    document.addEventListener('click', async function (event) {
+        const copyButton = event.target.closest('[data-referral-copy]');
+        if (copyButton) {
+            const card = copyButton.closest('.referral-card');
+            const code = normalizeReferralCodeInput(card?.getAttribute('data-referral-code') || getCurrentReferralCode());
+            if (!code) {
+                showErrorNotification('Referral code is not available yet. Please login first.', 'Referral unavailable');
+                return;
+            }
+            const copied = await copyTextToClipboard(code);
+            if (!copied) {
+                showErrorNotification('Could not copy code automatically.', 'Copy failed');
+                return;
+            }
+            showCartNotification({
+                kind: 'success',
+                title: 'Referral copied',
+                message: `Code ${code} copied to clipboard.`,
+                iconClass: 'fa-regular fa-copy',
+                duration: 1700
+            });
+            return;
+        }
+
+        const waButton = event.target.closest('[data-referral-whatsapp]');
+        if (waButton) {
+            const card = waButton.closest('.referral-card');
+            const code = normalizeReferralCodeInput(card?.getAttribute('data-referral-code') || getCurrentReferralCode());
+            if (!code) {
+                showErrorNotification('Referral code is not available yet. Please login first.', 'Referral unavailable');
+                return;
+            }
+            const shareLink = buildReferralWhatsAppLink(code);
+            if (!shareLink) return;
+            window.open(shareLink, '_blank');
+        }
+    });
+}
+
+function isAnyModalOpen() {
+    return Array.from(document.querySelectorAll('.modal')).some((modal) => modal && modal.style.display === 'block');
+}
+
+function syncBodyScrollLock() {
+    document.body.style.overflow = isAnyModalOpen() ? 'hidden' : 'auto';
+}
+
+function clearAuthCookies() {
+    const cookieNames = ['microgreensAuthSession', 'auth_session', 'session_token', 'mg_auth'];
+    const domains = [window.location.hostname, `.${window.location.hostname}`];
+    const paths = ['/', window.location.pathname || '/'];
+
+    cookieNames.forEach((name) => {
+        paths.forEach((path) => {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Lax`;
+            domains.forEach((domain) => {
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; domain=${domain}; SameSite=Lax`;
+            });
+        });
+    });
+}
+
+function clearClientAuthArtifacts() {
+    try {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+    } catch (error) {
+        console.warn('Failed to clear auth localStorage key:', error);
+    }
+
+    try {
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    } catch (error) {
+        console.warn('Failed to clear auth sessionStorage key:', error);
+    }
+
+    try {
+        clearAuthCookies();
+    } catch (error) {
+        console.warn('Failed to clear auth cookies:', error);
+    }
+}
+
+function readAuthStateFromStorage() {
+    try {
+        // Security hardening: keep auth state only for current tab session.
+        let raw = "";
+        try {
+            raw = sessionStorage.getItem(AUTH_STORAGE_KEY) || "";
+        } catch (storageErr) {
+            console.warn('Session storage unavailable for auth restore:', storageErr);
+        }
+
+        // Remove any legacy persistent token from localStorage.
+        try {
+            if (localStorage.getItem(AUTH_STORAGE_KEY)) {
+                localStorage.removeItem(AUTH_STORAGE_KEY);
+            }
+        } catch (legacyErr) {
+            console.warn('Failed to clear legacy auth localStorage key:', legacyErr);
+        }
+
+        if (!raw) return { sessionToken: '', user: null, expiresAt: '' };
+        const parsed = JSON.parse(raw);
+        return {
+            sessionToken: String(parsed.sessionToken || ''),
+            user: parsed.user || null,
+            expiresAt: String(parsed.expiresAt || '')
+        };
+    } catch (error) {
+        console.warn('Failed to read auth session from storage:', error);
+        return { sessionToken: '', user: null, expiresAt: '' };
+    }
+}
+
+function persistAuthState() {
+    try {
+        if (!authState.sessionToken) {
+            clearClientAuthArtifacts();
+            return;
+        }
+        sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
+        // Ensure token is never persisted beyond this tab session.
+        try {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+        } catch (legacyErr) {
+            console.warn('Failed to remove legacy auth localStorage key:', legacyErr);
+        }
+    } catch (error) {
+        console.warn('Failed to persist auth session:', error);
+    }
+}
+
+function clearAuthState() {
+    authState = {
+        sessionToken: '',
+        user: null,
+        expiresAt: ''
+    };
+    closeAuthUserMenu();
+    clearClientAuthArtifacts();
+    renderReferralCards();
+}
+
+function isAuthLoggedIn() {
+    return !!(authState && authState.sessionToken && authState.user);
+}
+
+function setAuthFeedback(message, isError) {
+    const ui = getAuthUI();
+    if (!ui.feedback) return;
+    ui.feedback.textContent = message || '';
+    ui.feedback.classList.toggle('show', !!message);
+    ui.feedback.classList.toggle('error', !!isError);
+}
+
+function sanitizeAuthName(name) {
+    return String(name || '')
+        .replace(/\s+/g, ' ')
+        .replace(/[^a-zA-Z.\s'-]/g, '')
+        .trim();
+}
+
+function normalizeReferralCodeInput(value) {
+    return String(value || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 16)
+        .trim();
+}
+
+function readReferralCodeFromUrl() {
+    try {
+        const refValue = new URLSearchParams(window.location.search).get('ref') || '';
+        return normalizeReferralCodeInput(refValue);
+    } catch (error) {
+        return '';
+    }
+}
+
+function isValidAuthName(name) {
+    return sanitizeAuthName(name).length >= 2;
+}
+
+function getAuthSendButtonLabel(isResend, secondsRemaining) {
+    if (secondsRemaining > 0) {
+        return `Resend OTP (${secondsRemaining}s)`;
+    }
+    if (isResend) {
+        return authMode === 'signup' ? 'Resend Sign Up OTP' : 'Resend OTP';
+    }
+    return authMode === 'signup' ? 'Send Sign Up OTP' : 'Send OTP';
+}
+
+function getAuthVerifyButtonLabel(isReady) {
+    if (!isReady) {
+        return 'Enter 6-digit OTP';
+    }
+    return authMode === 'signup' ? 'Verify & Create Account' : 'Verify & Login';
+}
+
+function updateAuthVerifyButtonState() {
+    const ui = getAuthUI();
+    if (!ui.verifyOtpBtn || !ui.otpInput || ui.verifyOtpBtn.classList.contains('auth-btn-busy')) {
+        return;
+    }
+
+    const cleanOtp = String(ui.otpInput.value || '').replace(/\D/g, '').slice(0, 6);
+    if (cleanOtp !== ui.otpInput.value) {
+        ui.otpInput.value = cleanOtp;
+    }
+
+    const isReady = cleanOtp.length === 6;
+    ui.verifyOtpBtn.disabled = !isReady;
+    ui.verifyOtpBtn.classList.toggle('otp-ready', isReady);
+    ui.verifyOtpBtn.textContent = getAuthVerifyButtonLabel(isReady);
+}
+
+function updateAuthModeUI() {
+    const ui = getAuthUI();
+    if (!ui.modeSignInBtn || !ui.modeSignUpBtn) return;
+
+    const isSignUp = authMode === 'signup';
+    ui.modeSignInBtn.classList.toggle('active', !isSignUp);
+    ui.modeSignUpBtn.classList.toggle('active', isSignUp);
+    ui.modeSignInBtn.setAttribute('aria-selected', String(!isSignUp));
+    ui.modeSignUpBtn.setAttribute('aria-selected', String(isSignUp));
+
+    if (ui.nameGroup) ui.nameGroup.style.display = isSignUp ? 'block' : 'none';
+    if (ui.phoneGroup) ui.phoneGroup.style.display = isSignUp ? 'block' : 'none';
+    if (ui.referralGroup) ui.referralGroup.style.display = isSignUp ? 'block' : 'none';
+    if (ui.nameInput) {
+        ui.nameInput.required = isSignUp;
+        ui.nameInput.setAttribute('aria-required', isSignUp ? 'true' : 'false');
+    }
+    if (ui.phoneInput) {
+        ui.phoneInput.required = isSignUp;
+        ui.phoneInput.setAttribute('aria-required', isSignUp ? 'true' : 'false');
+    }
+    if (ui.referralInput) {
+        ui.referralInput.required = false;
+        if (!isSignUp) {
+            ui.referralInput.setCustomValidity('');
+        }
+    }
+    refreshAuthResendButton();
+    updateAuthVerifyButtonState();
+}
+
+function setAuthMode(mode, resetStep) {
+    const normalized = mode === 'signup' ? 'signup' : 'signin';
+    authMode = normalized;
+    if (resetStep) {
+        setOtpMode(false);
+        setAuthFeedback('', false);
+    }
+    updateAuthModeUI();
+}
+
+function setAuthButtonBusy(buttonEl, isBusy, busyText, fallbackText) {
+    if (!buttonEl) return;
+
+    if (isBusy) {
+        const restoreText = fallbackText || buttonEl.textContent.trim() || 'Please wait...';
+        buttonEl.dataset.restoreText = restoreText;
+        buttonEl.disabled = true;
+        buttonEl.classList.add('auth-btn-busy');
+        buttonEl.innerHTML = `<span class="auth-mini-spinner" aria-hidden="true"></span><span>${busyText || 'Please wait...'}</span>`;
+        return;
+    }
+
+    const restore = buttonEl.dataset.restoreText || fallbackText || buttonEl.textContent.trim() || '';
+    buttonEl.classList.remove('auth-btn-busy');
+    buttonEl.disabled = false;
+    buttonEl.textContent = restore;
+    delete buttonEl.dataset.restoreText;
+}
+
+function clearAuthResendCountdown() {
+    if (authResendTimerId) {
+        clearInterval(authResendTimerId);
+        authResendTimerId = null;
+    }
+}
+
+function refreshAuthResendButton() {
+    const ui = getAuthUI();
+    if (!ui.sendOtpBtn) return;
+
+    if (authVerifyInProgress) {
+        ui.sendOtpBtn.disabled = true;
+        ui.sendOtpBtn.textContent = 'Verifying...';
+        ui.sendOtpBtn.classList.add('auth-cooldown');
+        return;
+    }
+
+    const remaining = Math.max(0, Math.ceil((authResendUntilMs - Date.now()) / 1000));
+    if (remaining > 0 && authOtpStepEnabled) {
+        ui.sendOtpBtn.disabled = true;
+        ui.sendOtpBtn.textContent = getAuthSendButtonLabel(true, remaining);
+        ui.sendOtpBtn.classList.add('auth-cooldown');
+        return;
+    }
+
+    ui.sendOtpBtn.disabled = false;
+    ui.sendOtpBtn.textContent = getAuthSendButtonLabel(authOtpStepEnabled, 0);
+    ui.sendOtpBtn.classList.remove('auth-cooldown');
+}
+
+function startAuthResendCountdown(seconds) {
+    const cooldown = Math.max(0, Number(seconds) || 0);
+    authResendUntilMs = Date.now() + cooldown * 1000;
+    clearAuthResendCountdown();
+    refreshAuthResendButton();
+
+    if (cooldown <= 0) return;
+
+    authResendTimerId = setInterval(() => {
+        refreshAuthResendButton();
+        if (Date.now() >= authResendUntilMs) {
+            clearAuthResendCountdown();
+            refreshAuthResendButton();
+        }
+    }, 500);
+}
+
+function setOtpMode(enabled) {
+    const ui = getAuthUI();
+    authOtpStepEnabled = !!enabled;
+    const displayValue = enabled ? 'block' : 'none';
+    if (ui.otpGroup) ui.otpGroup.style.display = displayValue;
+    if (ui.verifyOtpBtn) ui.verifyOtpBtn.style.display = enabled ? 'inline-flex' : 'none';
+    if (ui.otpHint) ui.otpHint.style.display = enabled ? 'block' : 'none';
+    if (ui.stepEmail) {
+        ui.stepEmail.classList.toggle('is-complete', enabled);
+        ui.stepEmail.classList.toggle('is-active', !enabled);
+    }
+    if (ui.stepOtp) {
+        ui.stepOtp.classList.toggle('is-active', enabled);
+    }
+
+    if (!enabled) {
+        if (ui.otpInput) ui.otpInput.value = '';
+        authResendUntilMs = 0;
+        clearAuthResendCountdown();
+    }
+
+    refreshAuthResendButton();
+    updateAuthModeUI();
+    updateAuthVerifyButtonState();
+}
+
+function openAuthModal() {
+    const ui = getAuthUI();
+    if (!ui.modal) return;
+
+    if (prefilledReferralCode && ui.referralInput && authMode === 'signup' && !ui.referralInput.value.trim()) {
+        ui.referralInput.value = prefilledReferralCode;
+    }
+
+    setAuthFeedback('', false);
+    if (prefilledReferralCode && authMode === 'signup') {
+        setAuthFeedback(`Referral code ${prefilledReferralCode} detected. Complete Sign Up to apply it.`, false);
+    }
+    setOtpMode(authOtpStepEnabled || authResendUntilMs > Date.now());
+    updateAuthModeUI();
+
+    const checkoutEmail = document.getElementById('customer-email')?.value?.trim() || '';
+    if (ui.emailInput && checkoutEmail && !ui.emailInput.value.trim()) {
+        ui.emailInput.value = checkoutEmail;
+    }
+
+    ui.modal.style.display = 'block';
+    syncBodyScrollLock();
+    updateAuthVerifyButtonState();
+    if (authOtpStepEnabled && ui.otpInput) {
+        ui.otpInput.focus();
+    } else if (ui.emailInput) {
+        ui.emailInput.focus();
+    }
+}
+
+function closeAuthModal() {
+    const ui = getAuthUI();
+    if (!ui.modal) return;
+    ui.modal.style.display = 'none';
+    syncBodyScrollLock();
+}
+
+function updateAuthNavAction() {
+    const ui = getAuthUI();
+    if (!ui.navAction) return;
+    const navLabel = document.getElementById('nav-auth-label');
+    const navIcon = ui.navAction.querySelector('i');
+
+    if (authNavBusy) return;
+
+    if (isAuthLoggedIn()) {
+        const displayName = getAuthDisplayName(authState.user);
+        if (navLabel) {
+            navLabel.textContent = `Hi, ${displayName}`;
+        } else {
+            ui.navAction.textContent = `Hi, ${displayName}`;
+        }
+        ui.navAction.classList.add('auth-logged-in');
+        ui.navAction.classList.add('auth-has-session');
+        if (navIcon) navIcon.className = 'fa-solid fa-user-check';
+        ui.navAction.setAttribute('title', `Signed in as ${displayName}. Open user menu.`);
+        ui.navAction.setAttribute('aria-label', `Signed in as ${displayName}. Open user menu.`);
+        ui.navAction.setAttribute('aria-haspopup', 'menu');
+        ui.navAction.setAttribute('aria-expanded', authUserMenuOpen ? 'true' : 'false');
+        if (ui.userMenuReferBtn) {
+            ui.userMenuReferBtn.disabled = !getCurrentReferralCode();
+        }
+    } else {
+        if (navLabel) {
+            navLabel.textContent = 'Login';
+        } else {
+            ui.navAction.textContent = 'Login';
+        }
+        ui.navAction.classList.remove('auth-logged-in');
+        ui.navAction.classList.remove('auth-has-session');
+        if (navIcon) navIcon.className = 'fa-regular fa-user';
+        ui.navAction.setAttribute('title', 'Login');
+        ui.navAction.setAttribute('aria-label', 'Login');
+        ui.navAction.removeAttribute('aria-haspopup');
+        ui.navAction.removeAttribute('aria-expanded');
+        closeAuthUserMenu();
+    }
+
+    renderReferralCards();
+}
+
+function setAuthNavBusy(enabled, labelText) {
+    const ui = getAuthUI();
+    if (!ui.navAction) return;
+
+    authNavBusy = !!enabled;
+    const navLabel = document.getElementById('nav-auth-label');
+    const navIcon = ui.navAction.querySelector('i');
+    if (enabled) {
+        closeAuthUserMenu();
+        ui.navAction.classList.add('auth-busy');
+        ui.navAction.setAttribute('aria-busy', 'true');
+        ui.navAction.setAttribute('aria-label', labelText || 'Processing');
+        if (navLabel) {
+            navLabel.textContent = labelText || 'Processing...';
+        } else {
+            ui.navAction.textContent = labelText || 'Processing...';
+        }
+        if (navIcon) navIcon.className = 'fa-solid fa-spinner fa-spin';
+        return;
+    }
+
+    ui.navAction.classList.remove('auth-busy');
+    ui.navAction.removeAttribute('aria-busy');
+    updateAuthNavAction();
+}
+
+function flashAuthNavSuccess() {
+    const ui = getAuthUI();
+    if (!ui.navAction) return;
+    ui.navAction.classList.remove('auth-just-verified');
+    void ui.navAction.offsetWidth;
+    ui.navAction.classList.add('auth-just-verified');
+    setTimeout(() => ui.navAction.classList.remove('auth-just-verified'), 1300);
+}
+
+function hydrateCheckoutFromAuth() {
+    if (!isAuthLoggedIn()) return;
+
+    const user = authState.user || {};
+    const checkoutName = document.getElementById('customer-name');
+    const checkoutEmail = document.getElementById('customer-email');
+    const checkoutPhone = document.getElementById('customer-phone');
+    const authEmail = document.getElementById('auth-email');
+    const authName = document.getElementById('auth-name');
+    const authPhone = document.getElementById('auth-phone');
+
+    if (checkoutName && !checkoutName.value.trim() && user.name) {
+        checkoutName.value = String(user.name).trim();
+    }
+    if (checkoutEmail && !checkoutEmail.value.trim() && user.email) {
+        checkoutEmail.value = String(user.email).trim();
+    }
+    if (checkoutPhone && !checkoutPhone.value.trim() && user.phone) {
+        checkoutPhone.value = String(user.phone).trim();
+    }
+
+    if (authEmail && user.email) authEmail.value = String(user.email).trim();
+    if (authName && user.name) authName.value = String(user.name).trim();
+    if (authPhone && user.phone) authPhone.value = String(user.phone).trim();
+}
+
+async function callAuthApi(payload) {
+    if (!isAuthConfigured()) {
+        throw new Error('Auth API URL is not configured in app.js');
+    }
+
+    const response = await fetch(AUTH_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(payload)
+    });
+
+    if (!response.ok) {
+        throw new Error(`Auth server returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result || result.status !== 'success') {
+        const authError = new Error(result?.message || 'Auth request failed');
+        authError.details = result || {};
+        throw authError;
+    }
+    return result;
+}
+
+async function requestOtpFromAuth() {
+    const ui = getAuthUI();
+    if (!ui.emailInput || !ui.sendOtpBtn) return;
+    if (authVerifyInProgress) return;
+
+    const email = ui.emailInput.value.trim().toLowerCase();
+    const nameFromModal = sanitizeAuthName(ui.nameInput ? ui.nameInput.value : '');
+    const nameFromCheckout = document.getElementById('customer-name')?.value?.trim() || '';
+    const name = nameFromModal || sanitizeAuthName(nameFromCheckout) || '';
+    const phone = ui.phoneInput ? ui.phoneInput.value.trim() : '';
+    const referralCode = normalizeReferralCodeInput(ui.referralInput ? ui.referralInput.value : '');
+
+    if (ui.referralInput && ui.referralInput.value !== referralCode) {
+        ui.referralInput.value = referralCode;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setAuthFeedback('Enter a valid email address before requesting OTP.', true);
+        return;
+    }
+
+    if (!isAuthConfigured()) {
+        setAuthFeedback('Auth API URL is not set yet. Update AUTH_API_URL in app.js first.', true);
+        return;
+    }
+
+    if (authMode === 'signup') {
+        if (!isValidAuthName(name)) {
+            setAuthFeedback('Please enter your full name for sign up.', true);
+            if (ui.nameInput) ui.nameInput.focus();
+            return;
+        }
+        const cleanedPhone = phone.replace(/\D/g, '');
+        if (cleanedPhone.length < 10) {
+            setAuthFeedback('Valid phone is required for sign up.', true);
+            if (ui.phoneInput) ui.phoneInput.focus();
+            return;
+        }
+    }
+
+    const originalText = ui.sendOtpBtn.textContent;
+    setOtpMode(true); // Show OTP transition immediately so UI doesn't appear laggy.
+    setAuthFeedback('Checking account details...', false);
+    setAuthButtonBusy(ui.sendOtpBtn, true, 'Checking...', originalText);
+
+    try {
+        const shouldValidateReferral = authMode === 'signup' && !!referralCode;
+        const [lookupResult, referralResult] = await Promise.allSettled([
+            callAuthApi({
+                action: 'check_user',
+                email: email
+            }),
+            shouldValidateReferral
+                ? callAuthApi({
+                    action: 'validate_referral',
+                    referral_code: referralCode,
+                    email: email
+                })
+                : Promise.resolve(null)
+        ]);
+
+        if (lookupResult.status === 'rejected') {
+            setOtpMode(false);
+            setAuthFeedback(lookupResult.reason?.message || 'Could not validate account status.', true);
+            return;
+        }
+
+        const lookup = lookupResult.value;
+        if (authMode === 'signup' && lookup.exists) {
+            setOtpMode(false);
+            setAuthFeedback('Account already exists. Please switch to Sign In.', true);
+            return;
+        }
+        if (authMode === 'signin' && !lookup.exists) {
+            setOtpMode(false);
+            setAuthFeedback('No account found. Switch to Sign Up first.', true);
+            return;
+        }
+
+        if (shouldValidateReferral && referralResult.status === 'rejected') {
+            setOtpMode(false);
+            setAuthFeedback(referralResult.reason?.message || 'Referral code is invalid.', true);
+            if (ui.referralInput) ui.referralInput.focus();
+            return;
+        }
+
+        setAuthFeedback('Sending OTP. Please wait...', false);
+        setAuthButtonBusy(ui.sendOtpBtn, true, 'Sending OTP...', originalText);
+
+        const result = await callAuthApi({
+            action: 'request_otp',
+            email: email,
+            name: name,
+            referral_code: referralCode,
+            auth_mode: authMode
+        });
+
+        setOtpMode(true);
+        startAuthResendCountdown(AUTH_RESEND_COOLDOWN_SECONDS);
+        setAuthFeedback(result.message || 'OTP sent to your email.', false);
+        if (ui.otpInput) {
+            ui.otpInput.value = '';
+            ui.otpInput.focus();
+        }
+    } catch (error) {
+        const retryAfter = Number(error?.details?.retry_after_seconds || 0);
+        const isCooldownError = retryAfter > 0 || /wait before requesting another otp/i.test(String(error?.message || ''));
+        if (isCooldownError) {
+            setOtpMode(true);
+            startAuthResendCountdown(retryAfter > 0 ? retryAfter : AUTH_RESEND_COOLDOWN_SECONDS);
+        } else {
+            setOtpMode(false);
+        }
+        setAuthFeedback(error.message || 'Unable to send OTP right now.', true);
+    } finally {
+        setAuthButtonBusy(ui.sendOtpBtn, false, '', originalText);
+        refreshAuthResendButton();
+        updateAuthVerifyButtonState();
+    }
+}
+
+async function verifyOtpFromAuth() {
+    const ui = getAuthUI();
+    if (!ui.emailInput || !ui.otpInput || !ui.verifyOtpBtn) return;
+    if (authVerifyInProgress) return;
+
+    const email = ui.emailInput.value.trim().toLowerCase();
+    const otp = ui.otpInput.value.trim();
+    const name = sanitizeAuthName(ui.nameInput ? ui.nameInput.value : '');
+    const phone = ui.phoneInput ? ui.phoneInput.value.trim() : '';
+    const referralCode = normalizeReferralCodeInput(ui.referralInput ? ui.referralInput.value : '');
+
+    if (ui.referralInput && ui.referralInput.value !== referralCode) {
+        ui.referralInput.value = referralCode;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setAuthFeedback('Enter a valid email address.', true);
+        return;
+    }
+    if (!otp) {
+        setOtpMode(true);
+        setAuthFeedback('OTP is empty. Enter the 6-digit code or click Resend OTP.', true);
+        if (ui.otpInput) ui.otpInput.focus();
+        return;
+    }
+    if (!/^\d{6}$/.test(otp)) {
+        setOtpMode(true);
+        setAuthFeedback('OTP must be exactly 6 digits. If needed, click Resend OTP.', true);
+        if (ui.otpInput) ui.otpInput.focus();
+        return;
+    }
+
+    if (authMode === 'signup') {
+        if (!isValidAuthName(name)) {
+            setAuthFeedback('Please enter your full name for sign up.', true);
+            if (ui.nameInput) ui.nameInput.focus();
+            return;
+        }
+        const cleanedPhone = phone.replace(/\D/g, '');
+        if (cleanedPhone.length < 10) {
+            setAuthFeedback('Valid phone is required for sign up.', true);
+            if (ui.phoneInput) ui.phoneInput.focus();
+            return;
+        }
+    }
+
+    const originalText = ui.verifyOtpBtn.textContent;
+    authVerifyInProgress = true;
+    refreshAuthResendButton();
+    setAuthFeedback('Verifying OTP. Please wait...', false);
+    setAuthButtonBusy(ui.verifyOtpBtn, true, 'Verifying...', originalText);
+
+    try {
+        const result = await callAuthApi({
+            action: 'verify_otp',
+            email: email,
+            otp: otp,
+            name: name,
+            phone: phone,
+            referral_code: referralCode,
+            auth_mode: authMode
+        });
+
+        authState = {
+            sessionToken: String(result.session_token || ''),
+            user: result.user || null,
+            expiresAt: String(result.session_expires_at || '')
+        };
+        persistAuthState();
+        updateAuthNavAction();
+        hydrateCheckoutFromAuth();
+        setOtpMode(false);
+        closeAuthModal();
+        flashAuthNavSuccess();
+
+        const checkoutModal = document.getElementById('checkout-modal');
+        if (checkoutModal && checkoutModal.style.display === 'block' && currentCheckoutStep === 1 && cart.length > 0) {
+            showCheckoutStep(2);
+        }
+
+        showCartNotification({
+            kind: 'success',
+            title: result.is_new_user ? 'Welcome' : 'Welcome back',
+            message: result.is_new_user
+              ? `Hi ${getAuthDisplayName(authState.user)}. Your account is ready.`
+              : `Hi ${getAuthDisplayName(authState.user)}. You are signed in.`
+        });
+        if (authState?.user?.referred_by_code && result.is_new_user) {
+            showCartNotification({
+                kind: 'success',
+                title: 'Referral Applied',
+                message: `Thanks. Referral ${authState.user.referred_by_code} has been linked to your account.`
+            });
+        }
+        if (authState?.user?.referral_code) {
+            showCartNotification({
+                kind: 'info',
+                title: 'Your Referral Code',
+                message: `Share ${authState.user.referral_code} with friends.`
+            });
+        }
+    } catch (error) {
+        setOtpMode(true);
+        setAuthFeedback(error.message || 'Unable to verify OTP.', true);
+    } finally {
+        authVerifyInProgress = false;
+        setAuthButtonBusy(ui.verifyOtpBtn, false, '', originalText);
+        refreshAuthResendButton();
+        updateAuthVerifyButtonState();
+    }
+}
+
+async function refreshAuthSession(silentMode) {
+    if (!authState.sessionToken) return false;
+    if (!isAuthConfigured()) return false;
+
+    try {
+        const result = await callAuthApi({
+            action: 'me',
+            session_token: authState.sessionToken
+        });
+        authState.user = result.user || authState.user;
+        if (result.session_expires_at) {
+            authState.expiresAt = String(result.session_expires_at);
+        }
+        persistAuthState();
+        return true;
+    } catch (error) {
+        clearAuthState();
+        if (!silentMode) {
+            showErrorNotification('Your login session expired. Please login again.', 'Session expired');
+        }
+        return false;
+    }
+}
+
+async function logoutFromAuth() {
+    const token = authState.sessionToken;
+    let logoutSynced = true;
+
+    if (token && isAuthConfigured()) {
+        try {
+            await callAuthApi({
+                action: 'logout',
+                session_token: token
+            });
+        } catch (error) {
+            logoutSynced = false;
+            console.warn('Logout API failed, clearing local session anyway:', error);
+        }
+    }
+
+    clearAuthState();
+    updateAuthNavAction();
+    showCartNotification({
+        kind: 'info',
+        title: 'Logged out',
+        message: logoutSynced ? 'You are now signed out. Refreshing...' : 'Signed out locally. Refreshing...'
+    });
+
+    setTimeout(() => {
+        window.location.reload();
+    }, 650);
+}
+
+async function initAuth() {
+    if (initAuth.initialized) return;
+    initAuth.initialized = true;
+
+    authState = readAuthStateFromStorage();
+    prefilledReferralCode = readReferralCodeFromUrl();
+    const ui = getAuthUI();
+    if (!ui.navAction || !ui.modal) return;
+
+    if (prefilledReferralCode && !isAuthLoggedIn()) {
+        authMode = 'signup';
+        if (ui.referralInput) {
+            ui.referralInput.value = prefilledReferralCode;
+        }
+    }
+
+    ui.navAction.addEventListener('click', async function (event) {
+        event.preventDefault();
+        if (authNavBusy) return;
+        if (isAuthLoggedIn()) {
+            toggleAuthUserMenu();
+            return;
+        }
+        closeAuthUserMenu();
+        openAuthModal();
+    });
+
+    if (ui.closeBtn) {
+        ui.closeBtn.addEventListener('click', function () {
+            closeAuthModal();
+        });
+    }
+
+    window.addEventListener('click', function (event) {
+        if (event.target === ui.modal) {
+            closeAuthModal();
+        }
+        const clickedMenu = !!(ui.userMenu && ui.userMenu.contains(event.target));
+        const clickedAuthTrigger = !!(ui.navAction && ui.navAction.contains(event.target));
+        if (authUserMenuOpen && !clickedMenu && !clickedAuthTrigger) {
+            closeAuthUserMenu();
+        }
+    });
+
+    window.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && authUserMenuOpen) {
+            closeAuthUserMenu();
+        }
+    });
+
+    if (ui.userMenuReferBtn) {
+        ui.userMenuReferBtn.addEventListener('click', function () {
+            openReferralFromMenu();
+        });
+    }
+
+    if (ui.userMenuLogoutBtn) {
+        ui.userMenuLogoutBtn.addEventListener('click', async function () {
+            if (authNavBusy) return;
+            setAuthNavBusy(true, 'Logging out...');
+            try {
+                await logoutFromAuth();
+            } finally {
+                setAuthNavBusy(false);
+            }
+        });
+    }
+
+    if (ui.sendOtpBtn) {
+        ui.sendOtpBtn.addEventListener('click', requestOtpFromAuth);
+    }
+
+    if (ui.verifyOtpBtn) {
+        ui.verifyOtpBtn.addEventListener('click', verifyOtpFromAuth);
+    }
+
+    if (ui.emailInput) {
+        ui.emailInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            if (authOtpStepEnabled) {
+                if (ui.otpInput) ui.otpInput.focus();
+            } else {
+                requestOtpFromAuth();
+            }
+        });
+    }
+
+    if (ui.otpInput) {
+        ui.otpInput.addEventListener('input', function () {
+            updateAuthVerifyButtonState();
+        });
+        ui.otpInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            verifyOtpFromAuth();
+        });
+    }
+
+    if (ui.nameInput) {
+        ui.nameInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            requestOtpFromAuth();
+        });
+    }
+
+    if (ui.phoneInput) {
+        ui.phoneInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            requestOtpFromAuth();
+        });
+    }
+
+    if (ui.referralInput) {
+        ui.referralInput.addEventListener('input', function () {
+            const clean = normalizeReferralCodeInput(ui.referralInput.value);
+            if (ui.referralInput.value !== clean) {
+                ui.referralInput.value = clean;
+            }
+        });
+        ui.referralInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            requestOtpFromAuth();
+        });
+    }
+
+    if (ui.modeSignInBtn) {
+        ui.modeSignInBtn.addEventListener('click', function () {
+            setAuthMode('signin', true);
+        });
+    }
+
+    if (ui.modeSignUpBtn) {
+        ui.modeSignUpBtn.addEventListener('click', function () {
+            setAuthMode('signup', true);
+        });
+    }
+
+    initReferralUiActions();
+
+    updateAuthNavAction();
+    updateAuthModeUI();
+    updateAuthVerifyButtonState();
+
+    if (authState.sessionToken && isAuthConfigured()) {
+        await refreshAuthSession(true);
+    } else if (authState.sessionToken && !isAuthConfigured()) {
+        clearAuthState();
+    }
+
+    updateAuthNavAction();
+    hydrateCheckoutFromAuth();
+}
 
             // Dismiss behavior: allow users to hide the floating WA button and persist that choice
             function initWhatsAppDismiss() {
@@ -1183,7 +2372,8 @@ function resetProductModalEnhancements() {
 
 function initializeModal() {
     const modal = document.getElementById('product-modal');
-    const closeBtn = document.querySelector('.close-modal');
+    if (!modal) return;
+    const closeBtn = modal.querySelector('.close-modal');
 
     // Add click event to all product cards
     document.querySelectorAll('.card').forEach(card => {
@@ -1334,10 +2524,12 @@ function initializeModal() {
         });
     });
 
-    closeBtn.addEventListener('click', function() {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    });
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+    }
 
     // Close modal if clicking outside content
     window.addEventListener('click', function(event) {
@@ -1377,7 +2569,7 @@ function updateMiniCartBar() {
     const totalEl = document.getElementById('mini-cart-total');
     if (!bar || !countEl || !totalEl) return;
 
-    const total = cart.reduce((sum, item) => sum + ((item.quantity / 50) * item.price), 0);
+    const total = getPricingSummary().total;
     countEl.textContent = String(cart.length);
     totalEl.textContent = `₹${total.toFixed(2)}`;
     bar.classList.toggle('show', cart.length > 0);
@@ -1571,6 +2763,7 @@ function updateCartDisplay() {
         cartDelivery.textContent = 'FREE';
         cartTotal.textContent = 'Total: ₹0';
         updateMiniCartBar();
+        renderReferralCards();
         return;
     }
 
@@ -1595,9 +2788,10 @@ function updateCartDisplay() {
         cartItems.appendChild(itemElement);
     });
 
-    const total = subtotal; // Assuming delivery is always free
+    const pricing = getPricingSummary();
+    const total = pricing.total;
 
-    cartSubtotal.textContent = `₹${subtotal.toFixed(2)}`;
+    cartSubtotal.textContent = `₹${pricing.subtotal.toFixed(2)}`;
     cartDelivery.textContent = 'FREE'; // Hardcoded as free
     cartTotal.innerHTML = `<span>Total:</span> <span>₹${total.toFixed(2)}</span>`;
     updateMiniCartBar();
@@ -1609,6 +2803,7 @@ function updateCartDisplay() {
             removeFromCart(index);
         });
     });
+    renderReferralCards();
 }
 
 function calculateOrderTotal() {
@@ -1619,7 +2814,9 @@ function calculateOrderTotal() {
         return total + itemTotal;
     }, 0);
     console.log('Final subtotal:', subtotal);
-    return subtotal;
+    const pricing = getPricingSummary();
+    console.log('Pricing summary:', pricing);
+    return pricing.total;
 }
 
 function showCartNotification(messageOrOptions) {
@@ -1681,17 +2878,24 @@ function showCheckoutStep(step) {
     document.getElementById(`step-${step}`).style.display = 'block';
 
     if (step === 1) {
-        updateCheckoutItems(); // Update cart summary in step 1
+        updateCheckoutItemsWithReferral(); // Update cart summary in step 1
     } else if (step === 3) {
-        updatePaymentSummary(); // Update order summary in payment step
+        updatePaymentSummaryWithReferral(); // Update order summary in payment step
         generatePaymentQRCode(); // Generate QR code for payment
     }
+
+    renderReferralCards();
 }
 
 function setupCheckout() {
     document.getElementById('btn-continue').addEventListener('click', function() {
         if (cart.length === 0) {
             alert('Your cart is empty. Please add items before placing an order.');
+            return;
+        }
+        if (!isAuthLoggedIn()) {
+            showErrorNotification('Please sign in or sign up before checkout.', 'Login required');
+            openAuthModal();
             return;
         }
         showCheckoutStep(2); // Go to Customer Info step
@@ -1856,10 +3060,83 @@ function updatePaymentSummary() {
     document.getElementById('payment-total').textContent = `₹${total.toFixed(2)}`;
 }
 
+function updateCheckoutItemsWithReferral() {
+    const itemsContainer = document.getElementById('checkout-items');
+    const referralRow = document.getElementById('checkout-referral-row');
+    const referralValue = document.getElementById('checkout-referral-discount');
+    if (!itemsContainer) return;
+
+    itemsContainer.innerHTML = '';
+
+    cart.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'order-item';
+
+        const itemPrice = (item.quantity / 50) * item.price;
+        itemElement.innerHTML = `
+            <div class="order-item-name">${item.product} (${item.quantity}g)</div>
+            <div class="order-item-price">₹${itemPrice.toFixed(2)}</div>
+        `;
+        itemsContainer.appendChild(itemElement);
+    });
+
+    const pricing = getPricingSummary();
+    document.getElementById('checkout-subtotal').textContent = `₹${pricing.subtotal.toFixed(2)}`;
+    document.getElementById('checkout-delivery').textContent = 'FREE';
+    document.getElementById('checkout-total').textContent = `₹${pricing.total.toFixed(2)}`;
+
+    if (referralRow && referralValue) {
+        if (pricing.referralDiscount > 0) {
+            referralRow.style.display = 'flex';
+            referralValue.textContent = `-₹${pricing.referralDiscount.toFixed(2)}`;
+        } else {
+            referralRow.style.display = 'none';
+            referralValue.textContent = '-₹0.00';
+        }
+    }
+}
+
+function updatePaymentSummaryWithReferral() {
+    const container = document.getElementById('payment-order-items');
+    const referralRow = document.getElementById('payment-referral-row');
+    const referralValue = document.getElementById('payment-referral-discount');
+    if (!container) return;
+
+    container.innerHTML = '';
+    cart.forEach(item => {
+        const itemPrice = (item.quantity / 50) * item.price;
+        container.innerHTML += `
+            <div class="order-item">
+                <div class="order-item-name">${item.product} (${item.quantity}g)</div>
+                <div class="order-item-price">₹${itemPrice.toFixed(2)}</div>
+            </div>
+        `;
+    });
+
+    const pricing = getPricingSummary();
+    document.getElementById('payment-total').textContent = `₹${pricing.total.toFixed(2)}`;
+
+    if (referralRow && referralValue) {
+        if (pricing.referralDiscount > 0) {
+            referralRow.style.display = 'flex';
+            referralValue.textContent = `-₹${pricing.referralDiscount.toFixed(2)}`;
+        } else {
+            referralRow.style.display = 'none';
+            referralValue.textContent = '-₹0.00';
+        }
+    }
+}
+
 // ========== ORDER SUBMISSION FUNCTIONS ========== //
 async function submitOrder() {
   const submitBtn = document.getElementById('btn-place-order');
   const loader = document.getElementById('fullpage-loader');
+
+  if (!isAuthLoggedIn()) {
+    showErrorNotification('Please sign in or sign up before placing an order.', 'Login required');
+    openAuthModal();
+    return;
+  }
   
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
@@ -1868,6 +3145,8 @@ async function submitOrder() {
   loader.style.display = 'flex';
 
   try {
+    const pricing = getPricingSummary();
+
     // Prepare order data
     const orderData = {
       name: document.getElementById('customer-name').value.trim(),
@@ -1876,9 +3155,19 @@ async function submitOrder() {
       address: document.getElementById('customer-address').value.trim(),
       notes: document.getElementById('customer-notes').value.trim(),
       payment_method: document.querySelector('.payment-option.active')?.getAttribute('data-method') || 'upi',
-      amount: calculateOrderTotal().toFixed(2),
+      amount: pricing.total.toFixed(2),
+      subtotal_amount: pricing.subtotal.toFixed(2),
+      referral_discount: pricing.referralDiscount.toFixed(2),
       product: cart.map(item => `${item.product} (${item.quantity}g)`).join(', '),
-      quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g'
+      quantity: cart.reduce((acc, item) => acc + item.quantity, 0) + 'g',
+      // send referral code from the input (or URL ref param) so server can re-verify
+      referral_code: normalizeReferralCodeInput(
+        document.getElementById('auth-referral')?.value || ''
+      ),
+      auth_user_id: authState?.user?.user_id || '',
+      auth_email: authState?.user?.email || '',
+      auth_referral_code: authState?.user?.referral_code || '',
+      auth_referred_by_code: authState?.user?.referred_by_code || ''
     };
 
     // Submit to server
@@ -1910,6 +3199,15 @@ async function submitOrder() {
       throw new Error("Missing order ID in response");
     }
 console.log("Server response:", result); // Add this before showing alert
+
+    const appliedReferralDiscount = Number(result?.referral_discount || 0);
+    if (appliedReferralDiscount > 0) {
+      showCartNotification({
+        kind: 'success',
+        title: 'Referral Discount Applied',
+        message: `You saved INR ${appliedReferralDiscount.toFixed(2)} on this order.`
+      });
+    }
 
     // Show order confirmation page (Step 4) instead of alert
     const totalAmount = parseFloat(result.amount || orderData.amount);

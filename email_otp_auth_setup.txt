@@ -1,0 +1,110 @@
+EMAIL OTP AUTH SETUP (SEPARATE FROM ORDER SYSTEM)
+=================================================
+
+This setup keeps your running order flow untouched.
+Use a separate spreadsheet + separate Apps Script web app for auth only.
+
+Files in this repo:
+- google_auth_email_otp.gs (auth backend script)
+
+
+1) Create a new auth spreadsheet
+--------------------------------
+1. Go to Google Sheets and create a new spreadsheet (example name: MG1 Auth).
+2. Copy the spreadsheet ID from URL.
+3. You do not need to create tabs manually; script setup will create them.
+
+
+2) Deploy separate Apps Script project
+--------------------------------------
+1. Open script.google.com and create a new standalone Apps Script project.
+2. Paste content of google_auth_email_otp.gs.
+3. Update CONFIG at top:
+   - SPREADSHEET_ID: your new auth spreadsheet ID
+   - SECRET_SEED: long random secret string (do not share)
+   - APP_NAME: your app/store name
+4. Save project.
+5. Run setupAuthSheets once from editor (authorizes and creates headers).
+
+
+3) Create web app deployment
+----------------------------
+1. Deploy -> New deployment -> Web app
+2. Execute as: your account
+3. Who has access: Anyone
+4. Deploy and copy auth URL
+
+
+4) API actions
+--------------
+All actions are POST to auth URL using form fields (URLSearchParams) or JSON body.
+
+A) request_otp
+- action=request_otp
+- email=<user email>
+- name=<optional>
+
+Success response:
+{
+  "status": "success",
+  "message": "OTP sent to email",
+  "expires_in_seconds": 300
+}
+
+B) verify_otp
+- action=verify_otp
+- email=<user email>
+- otp=<6 digit code>
+- name=<optional>
+- phone=<optional>
+
+Success response:
+{
+  "status": "success",
+  "message": "Login successful",
+  "session_token": "...",
+  "session_expires_at": "...",
+  "user": {
+    "user_id": "...",
+    "email": "...",
+    "name": "...",
+    "phone": "...",
+    "status": "ACTIVE"
+  }
+}
+
+C) me
+- action=me
+- session_token=<token>
+
+D) logout
+- action=logout
+- session_token=<token>
+
+
+5) Minimal frontend integration plan
+------------------------------------
+1. Add login modal with:
+   - email input + "Send OTP"
+   - otp input + "Verify OTP"
+2. On verify success, store session_token in localStorage.
+3. Call action=me on page load to restore user state.
+4. Keep order API unchanged initially.
+5. After testing, optionally require session for placing orders.
+
+
+6) Security notes
+-----------------
+1. Never expose SECRET_SEED in frontend.
+2. OTP is stored as hash only, not plain text.
+3. Keep auth spreadsheet private.
+4. Use short OTP expiry and max-attempt lock.
+
+
+7) Quick manual tests
+---------------------
+1. POST request_otp with your email.
+2. Check inbox and copy OTP.
+3. POST verify_otp with email + OTP.
+4. Copy session_token and test me/logout.
+

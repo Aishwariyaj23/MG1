@@ -56,6 +56,16 @@
       <div>Delivery: <span id="cart-delivery">FREE</span></div>
       <div id="cart-total">Total: INR 0</div>
     </div>
+    <div id="cart-referral-card" class="referral-card referral-card-compact" style="display:none;">
+      <div class="referral-card-head">
+        <h4>Refer &amp; Earn</h4>
+      </div>
+      <p class="referral-card-line">Your code: <strong class="referral-code-value">-</strong></p>
+      <div class="referral-card-actions">
+        <button type="button" class="referral-btn referral-copy-btn" data-referral-copy>Copy code</button>
+        <button type="button" class="referral-btn referral-share-btn" data-referral-whatsapp><i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp</button>
+      </div>
+    </div>
     <div class="cart-drawer-actions">
       <button id="view-cart">View Cart</button>
       <button id="checkout-btn">Proceed to Checkout</button>
@@ -73,6 +83,18 @@
     <a href="#products">Products</a>
     <a href="#recipes">Recepie</a>
     <a href="#" id="nav-contact" title="Contact us" aria-label="Contact us"><i class="fab fa-whatsapp"></i> Contact</a>
+    <a href="#" id="nav-auth-action" class="nav-auth-action" title="Login" aria-label="Login">
+      <i class="fa-regular fa-user" aria-hidden="true"></i>
+      <span class="nav-auth-copy"><span id="nav-auth-label">Login</span></span>
+    </a>
+    <div id="nav-user-menu" class="nav-user-menu" role="menu" aria-label="User menu" hidden>
+      <button type="button" id="nav-user-refer" class="nav-user-menu-btn" role="menuitem">
+        <i class="fa-solid fa-gift" aria-hidden="true"></i> Refer &amp; Earn
+      </button>
+      <button type="button" id="nav-user-logout" class="nav-user-menu-btn" role="menuitem">
+        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout
+      </button>
+    </div>
   </div>
 </nav>
 
@@ -363,10 +385,25 @@
               <span>Delivery:</span>
               <span id="checkout-delivery">FREE</span>
             </div>
+            <div class="total-row" id="checkout-referral-row" style="display:none;">
+              <span>Referral Discount:</span>
+              <span id="checkout-referral-discount">-INR 0</span>
+            </div>
             <div class="total-row grand-total">
               <span>Total:</span>
               <span id="checkout-total">INR 0</span>
             </div>
+          </div>
+        </div>
+        <div id="checkout-referral-card" class="referral-card" style="display:none;">
+          <div class="referral-card-head">
+            <h4>Refer &amp; Earn</h4>
+            <span class="referral-badge">Invite Friends</span>
+          </div>
+          <p class="referral-card-line">Your code: <strong class="referral-code-value">-</strong></p>
+          <div class="referral-card-actions">
+            <button type="button" class="referral-btn referral-copy-btn" data-referral-copy>Copy code</button>
+            <button type="button" class="referral-btn referral-share-btn" data-referral-whatsapp><i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp</button>
           </div>
         </div>
         <div class="checkout-actions">
@@ -440,6 +477,10 @@
   <div class="order-summary-payment">
     <h3>Order Summary</h3>
     <div id="payment-order-items"></div>
+    <div class="total-row" id="payment-referral-row" style="display:none;">
+      <span>Referral Discount:</span>
+      <span id="payment-referral-discount">-INR 0</span>
+    </div>
     <div class="total-row grand-total">
       <span>Total:</span>
       <span id="payment-total">INR 0</span>
@@ -461,6 +502,17 @@
           <p>We'll contact you shortly with delivery details.</p>
           <p style="margin-top: 15px; font-size: 14px; color: #666;"><i class="fab fa-whatsapp" aria-hidden="true"></i> If you've already made the payment, please share the receipt on WhatsApp for faster processing.</p>
         </div>
+        <div id="confirmation-referral-card" class="referral-card" style="display:none;">
+          <div class="referral-card-head">
+            <h4>Refer &amp; Earn</h4>
+            <span class="referral-badge">Order placed. Share now</span>
+          </div>
+          <p class="referral-card-line">Your code: <strong class="referral-code-value">-</strong></p>
+          <div class="referral-card-actions">
+            <button type="button" class="referral-btn referral-copy-btn" data-referral-copy>Copy code</button>
+            <button type="button" class="referral-btn referral-share-btn" data-referral-whatsapp><i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp</button>
+          </div>
+        </div>
         <div class="checkout-actions">
           <button type="button" id="share-receipt-whatsapp" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> Share Receipt via WhatsApp</button>
           <button type="button" class="btn-continue" onclick="document.getElementById('checkout-modal').style.display='none'; document.body.style.overflow='auto';">Continue Shopping</button>
@@ -469,7 +521,65 @@
     </div>
   </div>
 </div>
-  
+
+<!-- Auth Modal -->
+<div id="auth-modal" class="modal">
+  <div class="modal-content auth-modal-content">
+    <span class="close-modal">&times;</span>
+    <div class="modal-body auth-modal-body">
+      <h2>Login</h2>
+      <p class="auth-subtitle">Use your email to receive a one-time login code.</p>
+      <div class="auth-trust-row" aria-label="Security and delivery information">
+        <span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Secure OTP Login</span>
+        <span><i class="fa-regular fa-clock" aria-hidden="true"></i> Code valid for 10 minutes</span>
+      </div>
+      <div class="auth-stepper" aria-hidden="true">
+        <div class="auth-step is-active" id="auth-step-email"><span>1</span><small>Send OTP</small></div>
+        <div class="auth-step-line"></div>
+        <div class="auth-step" id="auth-step-otp"><span>2</span><small>Verify</small></div>
+      </div>
+      <div class="auth-mode-switch" role="tablist" aria-label="Choose authentication mode">
+        <button type="button" class="auth-mode-btn active" id="auth-mode-signin" data-mode="signin" role="tab" aria-selected="true">Sign In</button>
+        <button type="button" class="auth-mode-btn" id="auth-mode-signup" data-mode="signup" role="tab" aria-selected="false">Sign Up</button>
+      </div>
+      <div id="auth-feedback" class="auth-feedback" aria-live="polite"></div>
+
+      <div class="form-group">
+        <label for="auth-email">Email Address *</label>
+        <input type="email" id="auth-email" autocomplete="email" required>
+      </div>
+
+      <div class="form-group" id="auth-otp-group" style="display:none;">
+        <label for="auth-otp">OTP Code *</label>
+        <input type="text" id="auth-otp" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit code">
+        <div id="auth-otp-hint" class="auth-otp-hint">Enter the 6-digit code from your email. You can resend after the countdown.</div>
+      </div>
+
+      <div class="form-group" id="auth-name-group" style="display:none;">
+        <label for="auth-name">Name *</label>
+        <input type="text" id="auth-name" autocomplete="name" placeholder="Enter your full name">
+      </div>
+
+      <div class="form-group" id="auth-phone-group" style="display:none;">
+        <label for="auth-phone">Phone *</label>
+        <input type="tel" id="auth-phone" inputmode="tel" autocomplete="tel" placeholder="Enter your 10-digit phone">
+      </div>
+
+      <div class="form-group" id="auth-referral-group" style="display:none;">
+        <label for="auth-referral">Referral Code (optional)</label>
+        <input type="text" id="auth-referral" autocomplete="off" placeholder="Enter referral code if you have one">
+      </div>
+
+      <p class="auth-note">We use your login details only for checkout and order updates.</p>
+
+      <div class="checkout-actions auth-actions">
+        <button type="button" class="btn-continue" id="auth-send-otp">Send OTP</button>
+        <button type="button" class="btn-submit" id="auth-verify-otp" style="display:none;">Verify & Login</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Contact Modal (global) -->
 <div id="contact-modal" class="modal">
   <div class="modal-content">
