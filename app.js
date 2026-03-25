@@ -1174,6 +1174,7 @@ function openAuthModal() {
     }
 
     ui.modal.style.display = 'block';
+    document.body.classList.add('auth-modal-open');
     syncBodyScrollLock();
     updateAuthVerifyButtonState();
     if (authOtpStepEnabled && ui.otpInput) {
@@ -1187,6 +1188,7 @@ function closeAuthModal() {
     const ui = getAuthUI();
     if (!ui.modal) return;
     ui.modal.style.display = 'none';
+    document.body.classList.remove('auth-modal-open');
     syncBodyScrollLock();
 }
 
@@ -1517,9 +1519,15 @@ async function verifyOtpFromAuth() {
         closeAuthModal();
         flashAuthNavSuccess();
 
+        // After successful auth, return to checkout if user has items in cart
         const checkoutModal = document.getElementById('checkout-modal');
-        if (checkoutModal && checkoutModal.style.display === 'block' && currentCheckoutStep === 1 && cart.length > 0) {
-            showCheckoutStep(2);
+        if (cart.length > 0) {
+            // Reopen checkout modal that was closed for auth
+            setTimeout(() => {
+                checkoutModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                showCheckoutStep(2);
+            }, 100);
         }
 
         showCartNotification({
@@ -2895,7 +2903,13 @@ function setupCheckout() {
         }
         if (!isAuthLoggedIn()) {
             showErrorNotification('Please sign in or sign up before checkout.', 'Login required');
-            openAuthModal();
+            // CRITICAL: Close checkout modal before opening auth modal to prevent overlap
+            document.getElementById('checkout-modal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // Small delay to ensure checkout is fully closed before auth modal opens
+            setTimeout(() => {
+                openAuthModal();
+            }, 50);
             return;
         }
         showCheckoutStep(2); // Go to Customer Info step

@@ -385,7 +385,7 @@ h2 {
 /* Cart Styles */
 #cart-container {
   position: fixed; /* or sticky */
-  z-index: 9999; /* Higher than other elements */
+  z-index: 800; /* Below modal z-indexes to prevent interference */
   top: 100px; /* Adjust based on header height */
   right: 20px;
 }
@@ -584,6 +584,23 @@ h2 {
   backdrop-filter: blur(3px);
   overflow-y: auto;
   padding: 20px 0;
+}
+
+/* Auth modal always on top to prevent cart interference */
+#auth-modal {
+  z-index: 100110;
+}
+
+/* Checkout modal below auth */
+#checkout-modal {
+  z-index: 1000;
+}
+
+/* Product and other modals below checkout */
+#product-modal,
+#reviews-modal,
+#contact-modal {
+  z-index: 995;
 }
 
 .modal-content {
@@ -5452,5 +5469,23 @@ nav .nav-inner {
   .referral-card-head h4 {
     font-size: 0.9rem;
   }
+}
+
+body.auth-modal-open #cart-container,
+body.auth-modal-open #mobile-mini-cart,
+body.auth-modal-open #floating-whatsapp {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.auth-modal-open #cart-container,
+body.auth-modal-open #floating-whatsapp {
+  transform: translateY(12px);
+}
+
+body.auth-modal-open #mobile-mini-cart,
+body.auth-modal-open #mobile-mini-cart.show {
+  transform: translateY(120%) !important;
 }
 
