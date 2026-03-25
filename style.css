@@ -5472,20 +5472,25 @@ nav .nav-inner {
 }
 
 body.auth-modal-open #cart-container,
-body.auth-modal-open #mobile-mini-cart,
 body.auth-modal-open #floating-whatsapp {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-}
-
-body.auth-modal-open #cart-container,
-body.auth-modal-open #floating-whatsapp {
   transform: translateY(12px);
 }
 
 body.auth-modal-open #mobile-mini-cart,
 body.auth-modal-open #mobile-mini-cart.show {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
   transform: translateY(120%) !important;
+}
+
+@media (max-width: 768px) {
+  body.auth-modal-open {
+    padding-bottom: 0;
+  }
 }
 
