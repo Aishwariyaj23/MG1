@@ -5316,6 +5316,14 @@ nav .nav-inner > a {
   }
 }
 
+@media (max-width: 360px) {
+  /* Keep the floating WhatsApp button compact on exact 360px layouts. */
+  #floating-whatsapp {
+    left: max(10px, env(safe-area-inset-left));
+    right: auto;
+  }
+}
+
 /* =========================================
    Referral UI + User Menu
    ========================================= */
