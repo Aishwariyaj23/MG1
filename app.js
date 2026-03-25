@@ -846,7 +846,26 @@ function isAnyModalOpen() {
 }
 
 function syncBodyScrollLock() {
-    document.body.style.overflow = isAnyModalOpen() ? 'hidden' : 'auto';
+    const hasOpenModal = isAnyModalOpen();
+    document.body.classList.toggle('has-open-modal', hasOpenModal);
+    document.body.style.overflow = hasOpenModal ? 'hidden' : 'auto';
+    if (typeof updateMiniCartBar === 'function') {
+        updateMiniCartBar();
+    }
+}
+
+function setModalVisibility(modal, isVisible, bodyClassName) {
+    if (!modal) return;
+    modal.style.display = isVisible ? 'block' : 'none';
+    if (bodyClassName) {
+        document.body.classList.toggle(bodyClassName, !!isVisible);
+    }
+    syncBodyScrollLock();
+}
+
+function closeCheckoutModal() {
+    const checkoutModal = document.getElementById('checkout-modal');
+    setModalVisibility(checkoutModal, false);
 }
 
 function clearAuthCookies() {
@@ -1173,9 +1192,7 @@ function openAuthModal() {
         ui.emailInput.value = checkoutEmail;
     }
 
-    ui.modal.style.display = 'block';
-    document.body.classList.add('auth-modal-open');
-    syncBodyScrollLock();
+    setModalVisibility(ui.modal, true, 'auth-modal-open');
     updateAuthVerifyButtonState();
     if (authOtpStepEnabled && ui.otpInput) {
         ui.otpInput.focus();
@@ -1187,9 +1204,7 @@ function openAuthModal() {
 function closeAuthModal() {
     const ui = getAuthUI();
     if (!ui.modal) return;
-    ui.modal.style.display = 'none';
-    document.body.classList.remove('auth-modal-open');
-    syncBodyScrollLock();
+    setModalVisibility(ui.modal, false, 'auth-modal-open');
 }
 
 function updateAuthNavAction() {
@@ -1524,8 +1539,7 @@ async function verifyOtpFromAuth() {
         if (cart.length > 0) {
             // Reopen checkout modal that was closed for auth
             setTimeout(() => {
-                checkoutModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
+                setModalVisibility(checkoutModal, true);
                 showCheckoutStep(2);
             }, 100);
         }
@@ -1872,22 +1886,19 @@ function initContactModal() {
     if (navContact && modal) {
         navContact.addEventListener('click', function(e) {
             e.preventDefault();
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
+            setModalVisibility(modal, true);
         });
     }
 
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            setModalVisibility(modal, false);
         });
     }
 
     window.addEventListener('click', function(e) {
         if (e.target === modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            setModalVisibility(modal, false);
         }
     });
 
@@ -2104,14 +2115,14 @@ function initReviewsModal() {
     // Close button functionality
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
-            reviewsModal.style.display = 'none';
+            setModalVisibility(reviewsModal, false);
         });
     }
 
     // Click outside modal to close
     window.addEventListener('click', function(e) {
         if (e.target === reviewsModal) {
-            reviewsModal.style.display = 'none';
+            setModalVisibility(reviewsModal, false);
         }
     });
 
@@ -2166,7 +2177,7 @@ function initReviewsModal() {
             }
 
             // Show modal
-            reviewsModal.style.display = 'block';
+            setModalVisibility(reviewsModal, true);
     }, true);
 
     // Delegate hover style so newly rendered cards also get it.
@@ -2464,15 +2475,13 @@ function initializeModal() {
                 document.getElementById('add-to-cart-modal').onclick = function() {
                     const quantity = parseInt(document.querySelector('#product-modal .quantity-input').value);
                     addToCart(productName, quantity, product.price);
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto'; // Re-enable scrolling
+                    setModalVisibility(modal, false);
                 };
 
                 document.querySelector('#product-modal .quantity-selector').style.display = 'flex';
                 document.getElementById('add-to-cart-modal').style.display = 'block';
 
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden'; // Disable background scrolling
+                setModalVisibility(modal, true);
             }
         });
     });
@@ -2526,24 +2535,21 @@ function initializeModal() {
                 if (modalQty) modalQty.style.setProperty('display', 'none', 'important');
                 if (modalCartBtn) modalCartBtn.style.setProperty('display', 'none', 'important');
 
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
+                setModalVisibility(modal, true);
             }
         });
     });
 
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            setModalVisibility(modal, false);
         });
     }
 
     // Close modal if clicking outside content
     window.addEventListener('click', function(event) {
         if (event.target === modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+            setModalVisibility(modal, false);
         }
     });
 }
@@ -2580,7 +2586,7 @@ function updateMiniCartBar() {
     const total = getPricingSummary().total;
     countEl.textContent = String(cart.length);
     totalEl.textContent = `₹${total.toFixed(2)}`;
-    bar.classList.toggle('show', cart.length > 0);
+    bar.classList.toggle('show', cart.length > 0 && !isAnyModalOpen());
 }
 
 function initializeCart() {
@@ -2732,8 +2738,7 @@ function removeFromCart(index) {
     localStorage.setItem('microgreensCart', JSON.stringify(cart));
     updateCartDisplay();
     if (cart.length === 0) {
-        document.getElementById('checkout-modal').style.display = 'none'; // Close checkout if cart empty
-        document.body.style.overflow = 'auto';
+        closeCheckoutModal(); // Close checkout if cart empty
     }
 }
 
@@ -2863,8 +2868,7 @@ function showCartNotification(messageOrOptions) {
 
 // ========== CHECKOUT FUNCTIONS ========== //
 function showCheckoutModal() {
-    document.getElementById('checkout-modal').style.display = 'block';
-    document.body.style.overflow = 'hidden'; // Disable background scrolling
+    setModalVisibility(document.getElementById('checkout-modal'), true);
     showCheckoutStep(1); // Always start from step 1
 }
 
@@ -2904,8 +2908,7 @@ function setupCheckout() {
         if (!isAuthLoggedIn()) {
             showErrorNotification('Please sign in or sign up before checkout.', 'Login required');
             // CRITICAL: Close checkout modal before opening auth modal to prevent overlap
-            document.getElementById('checkout-modal').style.display = 'none';
-            document.body.style.overflow = 'auto';
+            closeCheckoutModal();
             // Small delay to ensure checkout is fully closed before auth modal opens
             setTimeout(() => {
                 openAuthModal();
@@ -2925,8 +2928,7 @@ function setupCheckout() {
                 showCheckoutStep(currentStep - 1);
             } else {
                 // If on step 1, close the modal
-                document.getElementById('checkout-modal').style.display = 'none';
-                document.body.style.overflow = 'auto';
+                closeCheckoutModal();
             }
         });
     });
@@ -2961,8 +2963,7 @@ function setupCheckout() {
 
     // Close checkout modal
     document.querySelector('#checkout-modal .close-modal').addEventListener('click', function() {
-        document.getElementById('checkout-modal').style.display = 'none';
-        document.body.style.overflow = 'auto';
+        closeCheckoutModal();
     });
 }
 function isCheckoutStepThree() {
@@ -3311,8 +3312,7 @@ async function continueShoppingAfterOrder() {
     console.log('🔄 Refreshing product data after order...');
     
     // Close checkout modal
-    document.getElementById('checkout-modal').style.display = 'none';
-    document.body.style.overflow = 'auto';
+    closeCheckoutModal();
     
     // Show loading notification
     showCartNotification({
@@ -3346,8 +3346,7 @@ async function continueShoppingAfterOrder() {
   } catch (err) {
     console.error('Error refreshing products:', err);
     // Still close modal even if refresh fails
-    document.getElementById('checkout-modal').style.display = 'none';
-    document.body.style.overflow = 'auto';
+    closeCheckoutModal();
     showErrorNotification('Could not refresh products, but order placed successfully');
   }
 }
