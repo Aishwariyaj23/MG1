@@ -1353,16 +1353,6 @@ nav a .fab {
   .floating-whatsapp .whatsapp-text { display: none; }
 }
 
-/* Move to left on very small widths to avoid overlap with chat widgets or system UI */
-@media (max-width: 360px) {
-  .floating-whatsapp { left: 12px; right: auto; bottom: calc(14px + env(safe-area-inset-bottom)); }
-  .floating-whatsapp::after { left: 8px; right: auto; }
-  .wa-badge { right: auto; left: 6px; }
-  .wa-dismiss { right: auto; left: -6px; }
-  /* Tooltip should flip to the right when button is on left */
-  .floating-whatsapp[data-tooltip]:hover::before { right: auto; left: calc(100% + 12px); }
-}
-
 /* Tooltip for floating button (uses data-tooltip attr) */
 .floating-whatsapp[data-tooltip]:hover::before {
   content: attr(data-tooltip);
@@ -5313,14 +5303,6 @@ nav .nav-inner > a {
     right: max(10px, env(safe-area-inset-right));
     bottom: max(154px, calc(146px + env(safe-area-inset-bottom)));
     z-index: 10050;
-  }
-}
-
-@media (max-width: 360px) {
-  /* Keep the floating WhatsApp button compact on exact 360px layouts. */
-  #floating-whatsapp {
-    left: max(10px, env(safe-area-inset-left));
-    right: auto;
   }
 }
 
