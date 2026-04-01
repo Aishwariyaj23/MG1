@@ -81,7 +81,7 @@
     <a href="#why-us">Why Us</a>
     <a href="#how-it-works">How It Works</a>
     <a href="#products">Products</a>
-    <a href="#recipes">Recepie</a>
+    <a href="#recipes">Recipes</a>
     <a href="#" id="nav-contact" title="Contact us" aria-label="Contact us"><i class="fab fa-whatsapp"></i> Contact</a>
     <a href="#" id="nav-auth-action" class="nav-auth-action" title="Login" aria-label="Login">
       <i class="fa-regular fa-user" aria-hidden="true"></i>
@@ -224,29 +224,22 @@
   <div class="gallery" id="products-gallery">
     <!-- Products will be loaded here from Google Sheets by JavaScript -->
   </div>
+  <aside id="featured-recipe-week" class="featured-recipe-week" aria-label="Featured recipe of the week"></aside>
 </section>
 
 <section id="recipes">
-  <h2>Recepie Ideas</h2>
-  <p class="section-subtitle">Simple ways to enjoy your microgreens every day.</p>
-  <div class="gallery recipes-flex">
-    <div class="card recipe-art">
-      <img src="images/avocado-toast.jpg" alt="Microgreens Avocado Toast">
-      <div class="gallery-title">Microgreens Avocado Toast</div>
-    </div>
-    <div class="card recipe-art">
-      <img src="images/sunflower-smoothie.jpg" alt="Sunflower Green Smoothie">
-      <div class="gallery-title">Sunflower Green Smoothie</div>
-    </div>
-    <div class="card recipe-art">
-      <img src="images/buddha-bowl.jpg" alt="Microgreen Buddha Bowl">
-      <div class="gallery-title">Microgreen Buddha Bowl</div>
-    </div>
-    <div class="card recipe-art">
-      <img src="images/radish-salad.jpg" alt="Radish Microgreen Salad">
-      <div class="gallery-title">Radish Microgreen Salad</div>
-    </div>
+  <h2>Recipe Ideas</h2>
+  <p class="section-subtitle">Discover quick breakfasts, local comfort-food twists, and lunchbox upgrades that turn microgreens into something you will actually want to make again.</p>
+  <div class="recipes-toolbar" id="recipe-toolbar" aria-label="Filter recipe ideas">
+    <button type="button" class="product-filter recipe-filter active" data-filter="all">All</button>
+    <button type="button" class="product-filter recipe-filter" data-filter="breakfast">Breakfast</button>
+    <button type="button" class="product-filter recipe-filter" data-filter="under-10-min">Under 10 Min</button>
+    <button type="button" class="product-filter recipe-filter" data-filter="high-protein">High Protein</button>
+    <button type="button" class="product-filter recipe-filter" data-filter="no-cook">No-Cook</button>
+    <button type="button" class="product-filter recipe-filter" data-filter="indian-style">Indian Style</button>
   </div>
+  <div class="gallery recipes-flex" id="recipes-gallery" aria-live="polite"></div>
+  <p id="recipes-filter-empty" class="recipes-filter-empty" hidden>No recipe ideas match this filter right now.</p>
 </section>
 
 <section id="testimonials" class="testimonials" aria-label="Customer voices">
@@ -345,10 +338,10 @@
       <h2 id="modal-title"></h2>
       <div class="modal-price" id="modal-price"></div>
       <div id="modal-description"></div>
-      <h3>Health Benefits</h3>
-      <ul id="modal-benefits"></ul>
-      <h3>How to Use</h3>
-      <ul id="modal-usage"></ul>
+      <h3 id="modal-benefits-heading">Health Benefits</h3>
+      <div id="modal-benefits"></div>
+      <h3 id="modal-usage-heading">How to Use</h3>
+      <div id="modal-usage"></div>
       <div class="quantity-selector">
         <button class="quantity-btn minus">-</button>
         <input type="number" value="50" min="50" step="50" class="quantity-input">

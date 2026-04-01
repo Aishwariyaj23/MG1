@@ -32,6 +32,17 @@ Sunflower Microgreens | Amit K. | 5 | Great quality microgreens. Perfect for smo
 Radish Microgreens | Rajesh T. | 5 | Love the spicy kick! Amazing for my salads. | 1 week ago | 156 | 4.5 |
 ```
 
+### 1.4 Create Sheet "Recipes"
+**Column Headers (Row 1):**
+```
+| Recipe Name | Image | Badge | Summary | Description | Prep Time | Difficulty | Best For | Categories | Pairs With | Shop Products | Why It Works | Swap Idea | Benefits | Ingredients | Instructions | Featured |
+```
+
+**Sample Data:**
+```
+Bangalore Microgreen Chaat | images/mixed.jpg | Street-Style Twist | Masala potato, chutneys, sev, and peppery microgreens for a familiar chaat with a fresher top note. | A home-style chaat bowl that uses microgreens as a real flavor layer, not just garnish. | 10 min | Easy | Evening Snack | under-10-min; indian-style | Radish Microgreens; Mustard Microgreens | Radish Microgreens; Mustard Microgreens | Chaat already thrives on contrast, so peppery microgreens fit naturally. | Use Mustard Microgreens instead of Radish Microgreens for a sharper hit. | Feels local and familiar; Fresh snack idea; Easy pantry recipe | 1 boiled potato diced; 1/4 cup chopped onion; 2 tbsp green chutney; 2 tbsp tamarind chutney; A handful of sev; 50g radish microgreens | Add potato and onion to bowl; Spoon over chutneys; Add radish microgreens; Finish with sev and lemon | Yes |
+```
+
 ---
 
 ## STEP 2: Create Google Apps Script
@@ -63,6 +74,7 @@ Radish Microgreens | Rajesh T. | 5 | Love the spicy kick! Amazing for my salads.
 - [ ] Google Sheet created
 - [ ] "Products" sheet with data
 - [ ] "Reviews" sheet with data
+- [ ] "Recipes" sheet with data
 - [ ] Apps Script code added
 - [ ] Deployed as Web App
 - [ ] Deployment URL copied

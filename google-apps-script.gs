@@ -4,9 +4,10 @@
 // ============================================
 
 // Configuration - ALREADY SET WITH YOUR SHEET ID
-const SHEET_ID = '1E-UFMvRf86NJkwyH1Lk_BLP54w1yvGEytgsaJQa4kuA'; // Your Google Sheet ID
+const SHEET_ID = '1p_BsLOEzjoycXK3WwB2i-h2a90SlnfPJT0gX0jrEXXQ'; // Your Google Sheet ID
 const PRODUCTS_SHEET = 'Products';
 const REVIEWS_SHEET = 'Reviews';
+const RECIPES_SHEET = 'Recipes';
 
 // ============================================
 // HELPER: List all sheets in the spreadsheet
@@ -60,6 +61,40 @@ function ensureProductHeaders(sheet) {
   }
 }
 
+function ensureRecipeHeaders(sheet) {
+  try {
+    const expected = [
+      'Recipe Name', 'Image', 'Badge', 'Summary', 'Description', 'Prep Time',
+      'Difficulty', 'Best For', 'Categories', 'Pairs With', 'Shop Products',
+      'Why It Works', 'Swap Idea', 'Benefits', 'Ingredients', 'Instructions', 'Featured'
+    ];
+
+    const currentLast = sheet.getLastColumn();
+    const checkCols = Math.max(currentLast, expected.length);
+    const headerRange = sheet.getRange(1, 1, 1, checkCols);
+    const headers = headerRange.getValues()[0] || [];
+
+    for (let i = 0; i < expected.length; i++) {
+      if (!headers[i]) headers[i] = '';
+    }
+
+    let changed = false;
+    for (let i = 0; i < expected.length; i++) {
+      if (!headers[i] || headers[i].toString().trim() === '') {
+        headers[i] = expected[i];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      sheet.getRange(1, 1, 1, expected.length).setValues([headers.slice(0, expected.length)]);
+      Logger.log('Headers updated on Recipes sheet: ' + expected.join(', '));
+    }
+  } catch (err) {
+    Logger.log('ensureRecipeHeaders error: ' + err.toString());
+  }
+}
+
 // ============================================
 // MAIN API ENDPOINT - Handles all requests
 // ============================================
@@ -73,6 +108,8 @@ function doGet(e) {
       response = getAllData();
     } else if (action === 'products') {
       response = getProducts();
+    } else if (action === 'recipes') {
+      response = getRecipes();
     } else if (action === 'reviews') {
       const productName = e.parameter.product;
       response = getReviewsByProduct(productName);
@@ -86,6 +123,7 @@ function doGet(e) {
         sheetId: SHEET_ID,
         productsSheetName: PRODUCTS_SHEET,
         reviewsSheetName: REVIEWS_SHEET,
+        recipesSheetName: RECIPES_SHEET,
         availableSheets: listAllSheets(),
         documentAccessible: true
       };
@@ -95,7 +133,7 @@ function doGet(e) {
     } else {
       response = {
         error: 'We could not understand this request. Please refresh the page and try again.',
-        availableActions: ['all', 'products', 'reviews', 'sheets', 'debug', 'sheet-debug']
+        availableActions: ['all', 'products', 'recipes', 'reviews', 'sheets', 'debug', 'sheet-debug']
       };
     }
 
@@ -254,6 +292,54 @@ function getProducts() {
   }
 }
 
+function getRecipes() {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(RECIPES_SHEET);
+
+    if (!sheet) {
+      return {
+        success: true,
+        count: 0,
+        data: {},
+        message: `${RECIPES_SHEET} sheet not found`,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    ensureRecipeHeaders(sheet);
+    const data = sheet.getDataRange().getValues();
+    const recipes = {};
+    let featuredRecipe = '';
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0] || row[0].toString().trim() === '') break;
+
+      const recipeName = row[0].toString().trim();
+      recipes[recipeName] = mapRecipeRow(row, recipeName);
+      if (recipes[recipeName].featured) {
+        featuredRecipe = recipeName;
+      }
+    }
+
+    return {
+      success: true,
+      count: Object.keys(recipes).length,
+      featuredRecipe: featuredRecipe,
+      data: recipes,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      availableSheets: listAllSheets(),
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 // ============================================
 // GET REVIEWS FOR SPECIFIC PRODUCT
 // ============================================
@@ -327,6 +413,12 @@ function parseSemicolonList(text) {
     .split(';')
     .map(item => item.trim())
     .filter(item => item.length > 0);
+}
+
+function parseSheetBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  const normalized = value ? value.toString().trim().toLowerCase() : '';
+  return ['true', 'yes', 'y', '1', 'featured'].indexOf(normalized) !== -1;
 }
 
 /**
@@ -452,6 +544,28 @@ function mapProductRow(row, productName) {
   return product;
 }
 
+function mapRecipeRow(row, recipeName) {
+  return {
+    name: recipeName,
+    image: row[1] ? row[1].toString().trim() : '',
+    badge: row[2] ? row[2].toString().trim() : 'Recipe Idea',
+    summary: row[3] ? row[3].toString().trim() : '',
+    description: row[4] ? row[4].toString().trim() : '',
+    prepTime: row[5] ? row[5].toString().trim() : '10 min',
+    difficulty: row[6] ? row[6].toString().trim() : 'Easy',
+    bestFor: row[7] ? row[7].toString().trim() : 'Anytime',
+    categories: parseSemicolonList(row[8] ? row[8].toString() : ''),
+    pairsWith: parseSemicolonList(row[9] ? row[9].toString() : ''),
+    shopProducts: parseSemicolonList(row[10] ? row[10].toString() : ''),
+    whyItWorks: row[11] ? row[11].toString().trim() : '',
+    swapIdea: row[12] ? row[12].toString().trim() : '',
+    benefits: parseSemicolonList(row[13] ? row[13].toString() : ''),
+    ingredients: parseSemicolonList(row[14] ? row[14].toString() : ''),
+    instructions: parseSemicolonList(row[15] ? row[15].toString() : ''),
+    featured: parseSheetBoolean(row[16])
+  };
+}
+
 /**
  * Calculate average rating from reviews array
  * Returns: Average rating rounded to 1 decimal
@@ -533,6 +647,9 @@ function testAPI() {
   
   const products = getProducts();
   console.log('Products Response:', products);
+
+  const recipes = getRecipes();
+  console.log('Recipes Response:', recipes);
   
   // Test reviews for first product
   if (allData.data && Object.keys(allData.data).length > 0) {

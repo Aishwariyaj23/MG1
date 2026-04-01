@@ -36,6 +36,17 @@ Mixed Microgreens | Neha S. | 4 | Versatile and healthy. Perfect for my salads. 
 
 ---
 
+## RECIPES SHEET - Complete Data
+
+```
+Recipe Name | Image | Badge | Summary | Description | Prep Time | Difficulty | Best For | Categories | Pairs With | Shop Products | Why It Works | Swap Idea | Benefits | Ingredients | Instructions | Featured
+Bangalore Microgreen Chaat | images/mixed.jpg | Street-Style Twist | Masala potato, chutneys, sev, and peppery microgreens for a familiar chaat with a fresher top note. | A home-style chaat bowl that uses microgreens as a real flavor layer, not just garnish. | 10 min | Easy | Evening Snack | under-10-min; indian-style | Radish Microgreens; Mustard Microgreens | Radish Microgreens; Mustard Microgreens | Chaat already thrives on contrast, so peppery microgreens fit naturally. | Use Mustard Microgreens instead of Radish Microgreens for a sharper hit. | Feels local and familiar; Fresh snack idea; Easy pantry recipe | 1 boiled potato diced; 1/4 cup chopped onion; 2 tbsp green chutney; 2 tbsp tamarind chutney; A handful of sev; 50g radish microgreens | Add potato and onion to bowl; Spoon over chutneys; Add radish microgreens; Finish with sev and lemon | Yes
+Paneer Toast with Mustard Crunch | images/mustard.png | High-Protein Snack | Masala paneer on toast with mustard microgreens for a savory breakfast upgrade. | A savory paneer toast that brings together warm spiced paneer and sharp mustard microgreens. | 10 min | Easy | Breakfast | breakfast; under-10-min; high-protein; indian-style | Mustard Microgreens; Sunflower Microgreens | Mustard Microgreens; Sunflower Microgreens | Paneer brings richness while mustard greens cut through it with heat. | Swap to Sunflower Microgreens for a milder version. | Protein-forward; Fast weekday breakfast; Gateway recipe for mustard greens | 2 slices bread; 1/2 cup paneer; 1 tsp butter; Chilli flakes; 50g mustard microgreens | Toast bread; Warm paneer; Spread paneer on toast; Top with mustard microgreens | No
+Lunchbox Wrap | images/beetroot-microgreens.jpg | Pack and Go | Soft roti or wrap stuffed with hummus, paneer, or leftover sabzi and bright beetroot greens. | A practical lunchbox wrap that uses microgreens to keep each bite fresh. | 9 min | Easy | Lunchbox | under-10-min | Beetroot Microgreens; Broccoli Microgreens | Beetroot Microgreens; Broccoli Microgreens | Microgreens keep the wrap lighter and brighter without adding watery vegetables. | Use Broccoli Microgreens for a cleaner finish. | Travel-friendly; Great for leftovers; Strong repeat-order recipe | 1 soft roti; 2 tbsp hummus; 1/2 cup paneer bhurji; 50g beetroot microgreens; Lemon | Spread hummus; Add filling; Top with greens and lemon; Roll tightly | No
+```
+
+---
+
 ## HOW TO USE THIS DATA
 
 ### Method 1: Copy-Paste into Google Sheets (Easiest)
@@ -49,6 +60,11 @@ Mixed Microgreens | Neha S. | 4 | Versatile and healthy. Perfect for my salads. 
    - Add new sheet named "Reviews"
    - Select cell A1
    - Paste all data from REVIEWS SHEET above
+
+3. **Create Recipes Sheet:**
+   - Add new sheet named "Recipes"
+   - Select cell A1
+   - Paste all data from RECIPES SHEET above
 
 ### Method 2: Manual Entry (If you prefer)
 
@@ -64,13 +80,16 @@ Just follow the table structure above and enter each row manually.
 - **Image**: Path to image file (relative path in your project)
 - **Rating**: 1-5 scale
 - **Benefits & Usage**: Separate items with semicolons (;)
+- **Recipe list columns**: `Categories`, `Pairs With`, `Shop Products`, `Benefits`, `Ingredients`, and `Instructions` also use semicolons (;)
 - **Date**: Any readable format ("2 weeks ago", "yesterday", etc.)
+- **Featured**: Use `Yes` for the single recipe you want shown as Recipe of the Week
 
 ### Example of Missing Data Handling
 - If a product has no reviews: Website will show "No reviews yet"
 - If Review Count is missing: Uses count of actual reviews
 - If Avg Rating missing: Calculates automatically from individual ratings
 - If image is missing: Browser shows broken image icon
+- If Recipes sheet is missing: Website falls back to built-in recipe ideas
 
 ### Avoid These Mistakes
 ❌ `Sunflower Microgreens` vs `sunflower microgreens` - Must match exactly!

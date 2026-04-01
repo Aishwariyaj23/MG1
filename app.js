@@ -30,20 +30,20 @@ const storedCart = localStorage.getItem('microgreensCart');
 console.log('Initial cart from localStorage:', storedCart ? JSON.parse(storedCart) : []);
 
 // Product and Reviews API Configuration
-const GOOGLE_PRODUCTS_API_BASE_URL = "https://script.google.com/macros/s/AKfycbzwV0e_Ygbg25D1u9-3aDIOa_eKbGpDxKnIrKKRHs_kiyylp4FYDON_0eUofu0RtOha9w/exec";
-const GOOGLE_PRODUCTS_API_URL = `${GOOGLE_PRODUCTS_API_BASE_URL}?action=products`;
-const GOOGLE_REVIEWS_API_URL = "https://script.google.com/macros/s/AKfycbzAI6b3XPOlXSW46pJPD-VFsJS5GogesuOb6ftgAPYPHTpzG5X23GdrfmDR-OnDnzN1/exec";
+const GOOGLE_PRODUCTS_API_BASE_URL = "https://script.google.com/macros/s/AKfycby0-rMjp4fh4_VEYfSUHEcSG-e3DE4IufkpY5WN1J4d1CmxldNzRQGYpfpUunEt2jEf/exec";
+const GOOGLE_ALL_DATA_API_URL = `${GOOGLE_PRODUCTS_API_BASE_URL}?action=all`;
+const GOOGLE_RECIPES_API_URL = `${GOOGLE_PRODUCTS_API_BASE_URL}?action=recipes`;
 
 // Global variable to hold product data (will be fetched from Google Sheets API)
 let productData = {};
 
 /**
  * Fetch product data from Google Sheets via Apps Script API
- * Called on page load to populate all products and reviews
+ * Called on page load to populate products, reviews, and recipes
  */
 async function fetchProductDataFromSheets() {
   try {
-    console.log('Fetching products and reviews from Google Sheets...');
+    console.log('Fetching products, reviews, and recipes from Google Sheets...');
     
     // Create abort controller with 15 second timeout
     const controller = new AbortController();
@@ -58,24 +58,31 @@ async function fetchProductDataFromSheets() {
         signal: controller.signal
       };
 
-      const [productsResponse, reviewsResponse] = await Promise.all([
-        fetch(GOOGLE_PRODUCTS_API_URL, requestOptions),
-        fetch(GOOGLE_REVIEWS_API_URL, requestOptions)
+      const [productsFetch, recipesFetch] = await Promise.allSettled([
+        fetch(GOOGLE_ALL_DATA_API_URL, requestOptions),
+        fetch(GOOGLE_RECIPES_API_URL, requestOptions)
       ]);
 
       clearTimeout(timeoutId);
+
+      if (productsFetch.status !== 'fulfilled') {
+        throw productsFetch.reason;
+      }
+
+      const productsResponse = productsFetch.value;
+      const recipesResponse = recipesFetch.status === 'fulfilled' ? recipesFetch.value : null;
 
       if (!productsResponse.ok) {
         throw new Error(`Products API HTTP error! status: ${productsResponse.status}`);
       }
 
       const productsResult = await productsResponse.json();
-      let reviewsResult = null;
+      let recipesResult = null;
 
-      if (reviewsResponse.ok) {
-        reviewsResult = await reviewsResponse.json();
-      } else {
-        console.warn(`Reviews API HTTP error! status: ${reviewsResponse.status}`);
+      if (recipesResponse && recipesResponse.ok) {
+        recipesResult = await recipesResponse.json();
+      } else if (recipesResponse) {
+        console.warn(`Recipes API HTTP error! status: ${recipesResponse.status}`);
       }
 
       if (productsResult.success && productsResult.data && typeof productsResult.data === 'object') {
@@ -89,9 +96,9 @@ async function fetchProductDataFromSheets() {
           p.rating = Number.isFinite(Number(p.rating)) ? Number(p.rating) : calculateAverageRatingFromList(p.customerReviews);
         });
 
-        // Merge reviews from external reviews-only API.
-        if (reviewsResult) {
-          const reviewsByProduct = normalizeReviewsResponse(reviewsResult);
+        // Merge review data from the unified all-data API response.
+        if (productsResult.hasReviews) {
+          const reviewsByProduct = normalizeReviewsResponse(productsResult);
           const normalizedProductLookup = {};
           Object.keys(productData).forEach((name) => {
             normalizedProductLookup[normalizeProductKey(name)] = name;
@@ -112,6 +119,19 @@ async function fetchProductDataFromSheets() {
 
         console.log('✓ Product data loaded from Google Sheets:', Object.keys(productData).length, 'products');
         
+        if (recipesResult) {
+          const normalizedRecipes = normalizeRecipesResponse(recipesResult);
+          if (Object.keys(normalizedRecipes.recipes).length > 0) {
+            replaceRecipeData(normalizedRecipes.recipes);
+            recipeOfTheWeekName = normalizedRecipes.featuredName || recipeOfTheWeekName;
+            console.log('Recipe data loaded from Google Sheets:', Object.keys(recipeData).length, 'recipes');
+          } else {
+            console.log('Using local fallback recipe data. No sheet recipes were returned.');
+          }
+        } else {
+          console.log('Using local fallback recipe data. Recipes sheet endpoint unavailable or not yet deployed.');
+        }
+
         // DEBUG: Log prices for each product
         console.log('=== PRICES FROM GOOGLE SHEETS ===');
         Object.keys(productData).forEach(key => {
@@ -145,6 +165,88 @@ async function fetchProductDataFromSheets() {
 
 function normalizeProductKey(name) {
   return String(name || '').trim().toLowerCase();
+}
+
+function parseDelimitedList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  const text = String(value || '').trim();
+  if (!text) return [];
+
+  return text
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseSheetBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['true', 'yes', 'y', '1', 'featured'].includes(normalized);
+}
+
+function normalizeRecipeEntry(recipeName, item) {
+  return {
+    image: item && item.image ? String(item.image).trim() : '',
+    badge: item && item.badge ? String(item.badge).trim() : 'Recipe Idea',
+    summary: item && item.summary ? String(item.summary).trim() : String(item?.description || '').trim(),
+    description: item && item.description ? String(item.description).trim() : '',
+    prepTime: item && (item.prepTime || item.prep_time || item.prep) ? String(item.prepTime || item.prep_time || item.prep).trim() : '10 min',
+    difficulty: item && item.difficulty ? String(item.difficulty).trim() : 'Easy',
+    bestFor: item && (item.bestFor || item.best_for) ? String(item.bestFor || item.best_for).trim() : 'Anytime',
+    categories: parseDelimitedList(item && (item.categories || item.category)),
+    pairsWith: parseDelimitedList(item && (item.pairsWith || item.pairs_with || item.pairings)),
+    shopProducts: parseDelimitedList(item && (item.shopProducts || item.shop_products || item.shopProduct)),
+    whyItWorks: item && (item.whyItWorks || item.why_it_works) ? String(item.whyItWorks || item.why_it_works).trim() : '',
+    swapIdea: item && (item.swapIdea || item.swap_idea) ? String(item.swapIdea || item.swap_idea).trim() : '',
+    benefits: parseDelimitedList(item && item.benefits),
+    ingredients: parseDelimitedList(item && item.ingredients),
+    instructions: parseDelimitedList(item && (item.instructions || item.steps)),
+    featured: parseSheetBoolean(item && (item.featured || item.isFeatured))
+  };
+}
+
+function normalizeRecipesResponse(result) {
+  const recipes = {};
+  let featuredName = '';
+
+  const attachRecipe = (incomingName, rawItem) => {
+    const recipeName = String(incomingName || rawItem?.name || rawItem?.recipeName || rawItem?.recipe_name || '').trim();
+    if (!recipeName) return;
+    const normalized = normalizeRecipeEntry(recipeName, rawItem || {});
+    recipes[recipeName] = normalized;
+    if (normalized.featured) featuredName = recipeName;
+  };
+
+  if (result && result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+    Object.keys(result.data).forEach((recipeName) => {
+      attachRecipe(recipeName, result.data[recipeName]);
+    });
+  }
+
+  if (result && Array.isArray(result.data)) {
+    result.data.forEach((item) => attachRecipe('', item));
+  }
+
+  if (Array.isArray(result)) {
+    result.forEach((item) => attachRecipe('', item));
+  }
+
+  const explicitFeatured = String(result?.featuredRecipe || result?.featured_recipe || '').trim();
+  if (explicitFeatured && recipes[explicitFeatured]) {
+    featuredName = explicitFeatured;
+  }
+
+  return { recipes, featuredName };
+}
+
+function replaceRecipeData(nextRecipes) {
+  Object.keys(recipeData).forEach((key) => {
+    delete recipeData[key];
+  });
+  Object.assign(recipeData, nextRecipes);
 }
 
 function calculateAverageRatingFromList(reviews) {
@@ -417,33 +519,52 @@ function renderProductsToGallery() {
 const recipeData = {
     "Microgreens Avocado Toast": {
         image: "images/avocado-toast.jpg",
-        description: "A nutritious and delicious breakfast option packed with healthy fats and microgreen nutrients.",
+        badge: "5-Min Breakfast",
+        summary: "Creamy avocado, citrus, and fresh microgreen crunch for a cafe-style start in minutes.",
+        description: "A cafe-style breakfast with creamy avocado, bright lemon, and a generous layer of crunchy sunflower microgreens.",
+        prepTime: "7 min",
+        difficulty: "Easy",
+        bestFor: "Breakfast",
+        categories: ["breakfast", "under-10-min"],
+        pairsWith: ["Sunflower Microgreens", "Radish Microgreens"],
+        shopProducts: ["Sunflower Microgreens", "Radish Microgreens"],
+        whyItWorks: "Creamy avocado gives the greens something rich to sit against, so the crunch and freshness feel built into the toast instead of sprinkled on top as an afterthought.",
+        swapIdea: "Use Radish Microgreens instead of Sunflower Microgreens for a sharper, peppery finish.",
         ingredients: [
             "2 slices whole grain bread",
             "1 ripe avocado",
             "50g sunflower microgreens",
             "1 tbsp lemon juice",
             "Salt and pepper to taste",
-            "Red pepper flakes (optional)"
+            "Chilli flakes or sesame seeds optional"
         ],
         instructions: [
-            "Toast the bread until golden and crisp.",
+            "Toast the bread until crisp and golden.",
             "Mash the avocado with lemon juice, salt, and pepper.",
-            "Spread the avocado mixture evenly on the toast.",
+            "Spread the avocado thickly over the toast.",
             "Top generously with sunflower microgreens.",
-            "Sprinkle with red pepper flakes if desired.",
-            "Serve immediately and enjoy!"
+            "Finish with chilli flakes or sesame seeds and serve immediately."
         ],
         benefits: [
-            "Rich in healthy monounsaturated fats from avocado",
-            "High in fiber for digestive health",
-            "Packed with vitamins and minerals from microgreens",
-            "Provides sustained energy throughout the morning"
+            "Rich in healthy fats, fiber, and fresh greens",
+            "An easy weekday breakfast that still feels premium",
+            "Adds texture without needing extra sauces or toppings",
+            "Keeps breakfast light but satisfying"
         ]
     },
     "Sunflower Green Smoothie": {
         image: "images/sunflower-smoothie.jpg",
-        description: "A protein-packed smoothie that's perfect for post-workout recovery or a nutritious breakfast.",
+        badge: "Post-Workout Blend",
+        summary: "Banana, almond butter, and sunflower greens blended into a creamy glass with real staying power.",
+        description: "A creamy, protein-friendly smoothie that turns sunflower greens into an easy post-workout or on-the-go breakfast blend.",
+        prepTime: "5 min",
+        difficulty: "Easy",
+        bestFor: "Recovery",
+        categories: ["breakfast", "under-10-min", "high-protein"],
+        pairsWith: ["Sunflower Microgreens", "Broccoli Microgreens"],
+        shopProducts: ["Sunflower Microgreens", "Broccoli Microgreens"],
+        whyItWorks: "Sunflower greens disappear easily into sweet, creamy ingredients, so the recipe feels approachable even for first-time microgreen buyers.",
+        swapIdea: "Swap in Broccoli Microgreens for a fresher, milder green note.",
         ingredients: [
             "1 banana",
             "1 cup almond milk",
@@ -459,40 +580,60 @@ const recipeData = {
             "Pour into a glass and enjoy immediately."
         ],
         benefits: [
-            "High in plant-based protein",
-            "Rich in vitamins and minerals",
-            "Great for muscle recovery",
-            "Provides sustained energy"
+            "High in plant-forward protein and steady energy",
+            "Great for busy mornings or post-workout recovery",
+            "A simple way to use microgreens daily without cooking",
+            "Naturally filling without feeling heavy"
         ]
     },
     "Microgreen Buddha Bowl": {
         image: "images/buddha-bowl.jpg",
-        description: "A colorful and nutritious bowl packed with wholesome ingredients and fresh microgreens.",
+        badge: "Power Lunch",
+        summary: "A layered bowl of quinoa, chickpeas, and greens that feels hearty, bright, and meal-prep friendly.",
+        description: "A vibrant bowl layered with quinoa, chickpeas, avocado, and microgreens for a satisfying lunch that still feels light.",
+        prepTime: "15 min",
+        difficulty: "Easy",
+        bestFor: "Lunch",
+        categories: ["high-protein"],
+        pairsWith: ["Broccoli Microgreens", "Beetroot Microgreens", "Sunflower Microgreens"],
+        shopProducts: ["Broccoli Microgreens", "Sunflower Microgreens", "Beetroot Microgreens"],
+        whyItWorks: "The bowl already has creamy, crunchy, and hearty elements, so microgreens act like the fresh finish that lifts everything instead of making the dish feel heavier.",
+        swapIdea: "Use Beetroot Microgreens instead of Broccoli Microgreens when you want a sweeter, more colorful bowl.",
         ingredients: [
             "1 cup cooked quinoa",
-            "50g mixed microgreens",
+            "50g broccoli microgreens",
             "1/2 avocado, sliced",
             "1/2 cup chickpeas",
             "1/4 cup shredded carrots",
-            "1/4 cup sliced cucumber",
-            "2 tbsp tahini dressing"
+            "1/4 cup cucumber",
+            "2 tbsp tahini or lemon dressing"
         ],
         instructions: [
-            "Arrange quinoa at the bottom of a bowl.",
-            "Add microgreens, avocado, chickpeas, carrots, and cucumber.",
-            "Drizzle with tahini dressing.",
-            "Toss gently before eating or enjoy as arranged."
+            "Add quinoa to the base of a bowl.",
+            "Arrange avocado, chickpeas, carrots, and cucumber on top.",
+            "Pile broccoli microgreens in the center.",
+            "Drizzle with dressing and toss lightly before eating."
         ],
         benefits: [
-            "Complete plant-based meal",
-            "High in fiber and protein",
-            "Packed with vitamins and antioxidants",
-            "Supports gut health"
+            "Balanced bowl with protein, fiber, and fresh crunch",
+            "Easy to prep ahead for weekday lunches",
+            "Works well warm or chilled",
+            "A strong entry point for customers who want a full meal idea"
         ]
     },
     "Radish Microgreen Salad": {
         image: "images/radish-salad.jpg",
-        description: "A refreshing and spicy salad with radish microgreens as the star ingredient.",
+        badge: "Fresh and Peppery",
+        summary: "Peppery radish greens, juicy tomatoes, and a bright lemon finish that wakes up any plate.",
+        description: "A bright, peppery salad where radish microgreens bring the bite and the lemon dressing keeps everything lively.",
+        prepTime: "8 min",
+        difficulty: "Easy",
+        bestFor: "Light Lunch",
+        categories: ["under-10-min", "no-cook"],
+        pairsWith: ["Radish Microgreens", "Beetroot Microgreens"],
+        shopProducts: ["Radish Microgreens", "Beetroot Microgreens"],
+        whyItWorks: "Radish microgreens bring enough flavor to make a simple salad feel intentional, especially when the dressing stays bright and minimal.",
+        swapIdea: "Swap in Beetroot Microgreens if you want the salad to feel softer and slightly sweeter.",
         ingredients: [
             "50g radish microgreens",
             "1 cup mixed salad greens",
@@ -509,13 +650,453 @@ const recipeData = {
             "Serve immediately for maximum freshness."
         ],
         benefits: [
-            "High in vitamin C",
-            "Supports digestion",
-            "Low calorie but nutrient-dense",
-            "Antioxidant-rich"
+            "Quick salad with strong flavor and very little prep",
+            "Ideal when customers want a fast raw use-case",
+            "Helps the peppery profile of radish greens shine",
+            "Works as a side or a light standalone meal"
+        ]
+    },
+    "Bangalore Microgreen Chaat": {
+        image: "images/mixed.jpg",
+        badge: "Street-Style Twist",
+        summary: "Masala potato, chutneys, sev, and peppery microgreens for a familiar chaat with a fresher top note.",
+        description: "A home-style chaat bowl that uses microgreens as a real flavor layer, not just garnish, with chutneys, potato, onion, and bright crunch in every spoonful.",
+        prepTime: "10 min",
+        difficulty: "Easy",
+        bestFor: "Evening Snack",
+        categories: ["under-10-min", "indian-style"],
+        pairsWith: ["Radish Microgreens", "Mustard Microgreens"],
+        shopProducts: ["Radish Microgreens", "Mustard Microgreens"],
+        whyItWorks: "Chaat already thrives on contrast, so peppery microgreens fit naturally with potato, chutneys, and sev while making the bowl feel fresher and lighter.",
+        swapIdea: "Use Mustard Microgreens instead of Radish Microgreens for an even sharper, wasabi-like hit.",
+        ingredients: [
+            "1 boiled potato diced",
+            "1/4 cup chopped onion",
+            "2 tbsp green chutney",
+            "2 tbsp tamarind chutney",
+            "A handful of sev",
+            "50g radish microgreens",
+            "Chaat masala and lemon to finish"
+        ],
+        instructions: [
+            "Add potato and onion to a serving bowl.",
+            "Spoon over both chutneys and toss lightly.",
+            "Add radish microgreens generously on top.",
+            "Finish with sev, chaat masala, and a squeeze of lemon.",
+            "Serve immediately while the textures still contrast."
+        ],
+        benefits: [
+            "Feels local and familiar instead of generic",
+            "Turns a snack favorite into a fresher microgreen use-case",
+            "Ideal for customers who want Indian flavor cues",
+            "Easy to assemble with pantry staples and leftovers"
+        ]
+    },
+    "Paneer Toast with Mustard Crunch": {
+        image: "images/mustard.png",
+        badge: "High-Protein Snack",
+        summary: "Masala paneer on toast with mustard microgreens for a savory, cafe-meets-breakfast upgrade.",
+        description: "A savory paneer toast that brings together warm spiced paneer and sharp mustard microgreens for a fast breakfast or filling snack.",
+        prepTime: "10 min",
+        difficulty: "Easy",
+        bestFor: "Breakfast",
+        categories: ["breakfast", "under-10-min", "high-protein", "indian-style"],
+        pairsWith: ["Mustard Microgreens", "Sunflower Microgreens"],
+        shopProducts: ["Mustard Microgreens", "Sunflower Microgreens"],
+        whyItWorks: "Paneer brings richness and protein, while mustard greens cut through it with just enough heat to keep the toast from feeling one-note.",
+        swapIdea: "Swap to Sunflower Microgreens for a milder, nuttier version that kids may prefer.",
+        ingredients: [
+            "2 slices multigrain bread",
+            "1/2 cup crumbled paneer",
+            "1 tsp butter or ghee",
+            "Pinch of chilli flakes and cumin",
+            "50g mustard microgreens",
+            "Salt and pepper to taste"
+        ],
+        instructions: [
+            "Toast the bread lightly.",
+            "Warm paneer in a pan with butter, cumin, salt, and chilli flakes.",
+            "Spread or pile the paneer over the toast.",
+            "Top with mustard microgreens just before serving."
+        ],
+        benefits: [
+            "Protein-forward and quick enough for weekdays",
+            "Great gateway recipe for mustard microgreens",
+            "Easy to scale from one slice to a full brunch plate",
+            "Pairs well with chai or a light salad"
+        ]
+    },
+    "Green Dosa Topping": {
+        image: "images/broccoli-microgreens.jpg",
+        badge: "Breakfast Upgrade",
+        summary: "Crisp dosa, podi or chutney, and fresh greens layered on top right before serving.",
+        description: "A quick way to make dosa feel fresher and more interesting by finishing it with microgreens, podi, and a spoon of chutney or curd.",
+        prepTime: "6 min",
+        difficulty: "Easy",
+        bestFor: "Breakfast",
+        categories: ["breakfast", "under-10-min", "indian-style"],
+        pairsWith: ["Broccoli Microgreens", "Mustard Microgreens"],
+        shopProducts: ["Broccoli Microgreens", "Mustard Microgreens"],
+        whyItWorks: "Hot dosa gives the dish comfort, while the greens stay fresh and crisp because they go on at the end instead of cooking down.",
+        swapIdea: "Use Mustard Microgreens instead of Broccoli Microgreens when you want a stronger spicy finish.",
+        ingredients: [
+            "2 ready dosas",
+            "2 tsp gunpowder or podi",
+            "2 tbsp coconut chutney or curd",
+            "50g broccoli microgreens",
+            "A little ghee optional"
+        ],
+        instructions: [
+            "Cook or reheat the dosas until crisp.",
+            "Spread chutney or curd over the surface.",
+            "Sprinkle podi and add broccoli microgreens on top.",
+            "Fold or serve open while the greens stay fresh."
+        ],
+        benefits: [
+            "Adds freshness to a familiar breakfast",
+            "Low-effort way to use microgreens with Indian staples",
+            "Works with plain dosa, pesarattu, or uttapam",
+            "Good option for repeat weekly use"
+        ]
+    },
+    "Radish Raita Bowl": {
+        image: "images/radish.jpg",
+        badge: "Cooling Side",
+        summary: "Curd, cumin, cucumber, and peppery radish greens make a side dish with more personality than plain raita.",
+        description: "A cooling raita bowl that uses radish microgreens for bite and freshness, making it especially good next to pulao, paratha, or grilled food.",
+        prepTime: "7 min",
+        difficulty: "Easy",
+        bestFor: "Side Dish",
+        categories: ["under-10-min", "no-cook", "indian-style"],
+        pairsWith: ["Radish Microgreens", "Beetroot Microgreens"],
+        shopProducts: ["Radish Microgreens", "Beetroot Microgreens"],
+        whyItWorks: "Curd softens the spicy edge of radish greens, so the flavor stays lively without overwhelming the rest of the meal.",
+        swapIdea: "Use Beetroot Microgreens instead for a softer and slightly sweeter raita bowl.",
+        ingredients: [
+            "1 cup thick curd",
+            "1/4 cup grated or diced cucumber",
+            "50g radish microgreens",
+            "Roasted cumin powder",
+            "Salt to taste",
+            "A few pomegranate seeds optional"
+        ],
+        instructions: [
+            "Whisk the curd until smooth.",
+            "Mix in cucumber, cumin, and salt.",
+            "Fold in most of the radish microgreens.",
+            "Top with the remaining greens and pomegranate before serving."
+        ],
+        benefits: [
+            "Very approachable for customers who cook Indian meals often",
+            "No-cook and genuinely fast to assemble",
+            "Works as a side, dip, or lunch add-on",
+            "Balances spicy mains with freshness"
+        ]
+    },
+    "Sandwich Booster Mix": {
+        image: "images/sunflower.jpg",
+        badge: "Lunchbox Hero",
+        summary: "A crunchy microgreen mix that instantly lifts grilled sandwiches, veggie toasties, and packed lunch layers.",
+        description: "A simple sandwich booster that turns everyday bread-and-filling combos into something fresher and more textured with a handful of microgreens.",
+        prepTime: "5 min",
+        difficulty: "Easy",
+        bestFor: "Lunchbox",
+        categories: ["under-10-min"],
+        pairsWith: ["Sunflower Microgreens", "Beetroot Microgreens"],
+        shopProducts: ["Sunflower Microgreens", "Beetroot Microgreens"],
+        whyItWorks: "Sandwiches usually need texture more than more sauce, and sunflower greens solve that instantly while keeping the filling from tasting flat.",
+        swapIdea: "Use Beetroot Microgreens when you want more color and a softer bite in cold sandwiches.",
+        ingredients: [
+            "2 bread slices or sandwich buns",
+            "Your favorite filling such as paneer, cheese, or hummus",
+            "50g sunflower microgreens",
+            "Tomato or cucumber slices optional",
+            "Butter or chutney optional"
+        ],
+        instructions: [
+            "Prepare the bread with your chosen spread.",
+            "Add the filling and vegetables if using.",
+            "Layer sunflower microgreens generously before closing.",
+            "Serve fresh or pack for later."
+        ],
+        benefits: [
+            "Easy to repeat through the week with different fillings",
+            "Great for lunchboxes and after-school snacks",
+            "Makes simple sandwiches feel more premium",
+            "Requires no new cooking technique"
+        ]
+    },
+    "Lunchbox Wrap": {
+        image: "images/beetroot-microgreens.jpg",
+        badge: "Pack and Go",
+        summary: "Soft roti or wrap stuffed with hummus, paneer, or leftover sabzi and bright beetroot greens.",
+        description: "A practical lunchbox wrap that uses microgreens to keep each bite fresh, even when the filling is simple or made from leftovers.",
+        prepTime: "9 min",
+        difficulty: "Easy",
+        bestFor: "Lunchbox",
+        categories: ["under-10-min"],
+        pairsWith: ["Beetroot Microgreens", "Broccoli Microgreens"],
+        shopProducts: ["Beetroot Microgreens", "Broccoli Microgreens"],
+        whyItWorks: "Lunchbox food can turn dense quickly, and beetroot microgreens keep the wrap lighter and brighter without adding watery vegetables.",
+        swapIdea: "Use Broccoli Microgreens when you want a cleaner, less earthy finish.",
+        ingredients: [
+            "1 soft roti or tortilla",
+            "2 tbsp hummus or hung curd spread",
+            "1/2 cup paneer bhurji or leftover dry sabzi",
+            "50g beetroot microgreens",
+            "A squeeze of lemon"
+        ],
+        instructions: [
+            "Spread hummus or hung curd over the wrap.",
+            "Add paneer bhurji or leftover sabzi in a line.",
+            "Top with beetroot microgreens and lemon.",
+            "Roll tightly and pack or serve immediately."
+        ],
+        benefits: [
+            "Excellent use for leftover sabzi, paneer, or hummus",
+            "Travel-friendly and easy to prep in the morning",
+            "A strong everyday recipe for repeat orders",
+            "Looks colorful without extra fuss"
+        ]
+    },
+    "Beetroot Curd Rice Crunch": {
+        image: "images/beetroot-microgreens.jpg",
+        badge: "Comfort Food Lift",
+        summary: "Cool curd rice topped with ruby-stem microgreens for color, freshness, and a little crunch.",
+        description: "A comforting curd rice bowl finished with beetroot microgreens so the dish stays familiar but looks and tastes more alive.",
+        prepTime: "8 min",
+        difficulty: "Easy",
+        bestFor: "Comfort Lunch",
+        categories: ["under-10-min", "indian-style"],
+        pairsWith: ["Beetroot Microgreens", "Radish Microgreens"],
+        shopProducts: ["Beetroot Microgreens", "Radish Microgreens"],
+        whyItWorks: "Curd rice is soft and soothing, which makes colorful beetroot greens especially noticeable in both texture and visual appeal.",
+        swapIdea: "Swap in Radish Microgreens if you want the bowl to lean sharper and less sweet.",
+        ingredients: [
+            "1 cup cooked rice",
+            "1/2 cup curd",
+            "Salt to taste",
+            "1 tsp tempering with mustard seeds and curry leaves optional",
+            "50g beetroot microgreens",
+            "Pomegranate or grated carrot optional"
+        ],
+        instructions: [
+            "Mix rice, curd, and salt until creamy.",
+            "Add tempering if using.",
+            "Top with beetroot microgreens just before serving.",
+            "Finish with pomegranate or grated carrot if desired."
+        ],
+        benefits: [
+            "An easy local use-case for repeat customers",
+            "Adds color to a pale comfort-food bowl",
+            "Works with leftover rice and very little prep",
+            "Helps microgreens feel relevant to home-style meals"
+        ]
+    },
+    "Mustard Poha Finish": {
+        image: "images/mustard.png",
+        badge: "Spicy Morning Lift",
+        summary: "Soft poha finished with mustard microgreens for a peppery bite that wakes the whole bowl up.",
+        description: "A quick poha upgrade that keeps the base comforting but adds a bright peppery finish right at the end with mustard microgreens.",
+        prepTime: "8 min",
+        difficulty: "Easy",
+        bestFor: "Breakfast",
+        categories: ["breakfast", "under-10-min", "indian-style"],
+        pairsWith: ["Mustard Microgreens", "Radish Microgreens"],
+        shopProducts: ["Mustard Microgreens", "Radish Microgreens"],
+        whyItWorks: "Poha is soft and mellow, so a handful of mustard greens creates contrast fast without needing extra masala or heavy toppings.",
+        swapIdea: "Use Radish Microgreens for a similar lift with a slightly fresher, less sharp flavor.",
+        ingredients: [
+            "1 bowl cooked poha",
+            "50g mustard microgreens",
+            "A squeeze of lemon",
+            "Roasted peanuts optional",
+            "Fresh coriander optional"
+        ],
+        instructions: [
+            "Prepare or reheat poha as usual.",
+            "Move it to a serving bowl.",
+            "Top with mustard microgreens, lemon, and peanuts.",
+            "Serve immediately while the greens stay crisp."
+        ],
+        benefits: [
+            "Fits naturally into Indian breakfast habits",
+            "Takes almost no extra cooking time",
+            "A good repeat-use recipe for weekly buyers",
+            "Makes mild breakfasts feel brighter and fresher"
         ]
     }
 };
+
+const RECIPE_OF_THE_WEEK = "Bangalore Microgreen Chaat";
+let recipeOfTheWeekName = RECIPE_OF_THE_WEEK;
+const RECIPE_CATEGORY_LABELS = {
+    all: "All",
+    breakfast: "Breakfast",
+    "under-10-min": "Under 10 Min",
+    "high-protein": "High Protein",
+    "no-cook": "No-Cook",
+    "indian-style": "Indian Style"
+};
+
+function formatRecipeCategoryLabel(category) {
+    return RECIPE_CATEGORY_LABELS[category] || String(category || "");
+}
+
+function getRecipePrimaryPairing(recipe) {
+    return Array.isArray(recipe?.pairsWith) && recipe.pairsWith.length > 0
+        ? recipe.pairsWith[0]
+        : "Microgreens";
+}
+
+function findProductMatch(candidateNames = []) {
+    if (!productData || typeof productData !== "object") return "";
+
+    const normalizedLookup = {};
+    Object.keys(productData).forEach((name) => {
+        normalizedLookup[normalizeProductKey(name)] = name;
+    });
+
+    for (const candidate of candidateNames) {
+        if (!candidate) continue;
+        if (productData[candidate]) return candidate;
+        const normalized = normalizeProductKey(candidate);
+        if (normalizedLookup[normalized]) return normalizedLookup[normalized];
+        const partialMatch = Object.keys(normalizedLookup).find((key) => key.includes(normalized) || normalized.includes(key));
+        if (partialMatch) return normalizedLookup[partialMatch];
+    }
+
+    return "";
+}
+
+function getRecipeShopProduct(recipe) {
+    if (!recipe) return null;
+    const candidates = Array.isArray(recipe.shopProducts) && recipe.shopProducts.length > 0
+        ? recipe.shopProducts
+        : (Array.isArray(recipe.pairsWith) ? recipe.pairsWith : []);
+    const productName = findProductMatch(candidates);
+    if (!productName || !productData[productName]) return null;
+    return {
+        name: productName,
+        product: productData[productName]
+    };
+}
+
+function renderRecipesToGallery() {
+    const gallery = document.getElementById("recipes-gallery");
+    if (!gallery) return;
+
+    const entries = Object.entries(recipeData);
+    gallery.innerHTML = entries.map(([recipeName, recipe], index) => {
+        const primaryPairing = getRecipePrimaryPairing(recipe);
+        const shopMeta = getRecipeShopProduct(recipe);
+        const pairPrice = shopMeta ? `${formatCurrency(shopMeta.product.price)} / 50g` : "Fresh weekly harvest";
+        const metaItems = [
+            `<span><i class="fa-regular fa-clock" aria-hidden="true"></i>${recipe.prepTime}</span>`,
+            `<span><i class="fa-solid fa-signal" aria-hidden="true"></i>${recipe.difficulty}</span>`,
+            `<span><i class="fa-solid fa-bullseye" aria-hidden="true"></i>${recipe.bestFor}</span>`
+        ].join("");
+        const chips = (recipe.categories || []).slice(0, 2).map((category) => (
+            `<span>${formatRecipeCategoryLabel(category)}</span>`
+        )).join("");
+
+        return `
+            <article class="card recipe-art" role="button" tabindex="0" data-recipe-name="${recipeName}" data-categories="${(recipe.categories || []).join("|")}" style="--recipe-delay:${index * 70}ms">
+                <div class="recipe-card-media">
+                    <img src="${recipe.image}" alt="${recipeName}">
+                    <span class="recipe-badge">${recipe.badge}</span>
+                </div>
+                <div class="recipe-card-body">
+                    <div class="gallery-title">${recipeName}</div>
+                    <div class="recipe-meta-row">${metaItems}</div>
+                    <p class="recipe-note">${recipe.summary}</p>
+                    <p class="recipe-pairing">Pairs well with <strong>${primaryPairing}</strong><span>${pairPrice}</span></p>
+                    <div class="recipe-tags" aria-hidden="true">${chips}</div>
+                </div>
+            </article>
+        `;
+    }).join("");
+
+    applyRecipeFilter();
+}
+
+function setupRecipeFilters() {
+    const toolbar = document.getElementById("recipe-toolbar");
+    if (!toolbar || setupRecipeFilters.initialized) return;
+    setupRecipeFilters.initialized = true;
+
+    toolbar.addEventListener("click", (e) => {
+        const btn = e.target.closest(".recipe-filter");
+        if (!btn) return;
+
+        toolbar.querySelectorAll(".recipe-filter").forEach((node) => node.classList.remove("active"));
+        btn.classList.add("active");
+        activeRecipeFilter = btn.getAttribute("data-filter") || "all";
+        applyRecipeFilter();
+    });
+}
+
+function applyRecipeFilter() {
+    const cards = document.querySelectorAll("#recipes-gallery .recipe-art");
+    const emptyState = document.getElementById("recipes-filter-empty");
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+        const categories = String(card.getAttribute("data-categories") || "").split("|").filter(Boolean);
+        const show = activeRecipeFilter === "all" || categories.includes(activeRecipeFilter);
+        card.classList.toggle("is-hidden", !show);
+        if (show) visibleCount += 1;
+    });
+
+    if (emptyState) {
+        emptyState.hidden = visibleCount !== 0;
+    }
+}
+
+function renderFeaturedRecipeOfWeek() {
+    const container = document.getElementById("featured-recipe-week");
+    const featuredName = recipeData[recipeOfTheWeekName]
+        ? recipeOfTheWeekName
+        : (Object.keys(recipeData)[0] || RECIPE_OF_THE_WEEK);
+    const recipe = recipeData[featuredName];
+    if (!container || !recipe) return;
+
+    recipeOfTheWeekName = featuredName;
+
+    const shopMeta = getRecipeShopProduct(recipe);
+    const pairingName = shopMeta ? shopMeta.name : getRecipePrimaryPairing(recipe);
+    const priceLine = shopMeta
+        ? `${formatCurrency(shopMeta.product.price)} per 50g`
+        : "Availability depends on weekly harvest";
+    const shopButton = shopMeta
+        ? `<button type="button" class="featured-recipe-btn featured-recipe-btn-primary" data-shop-product="${shopMeta.name}" data-shop-quantity="50">Shop this recipe</button>`
+        : `<button type="button" class="featured-recipe-btn featured-recipe-btn-primary" disabled>Pairing unavailable</button>`;
+
+    container.innerHTML = `
+        <div class="featured-recipe-media">
+            <img src="${recipe.image}" alt="${featuredName}">
+        </div>
+        <div class="featured-recipe-copy">
+            <span class="featured-recipe-kicker">Recipe of the Week</span>
+            <h3>${featuredName}</h3>
+            <p>${recipe.summary}</p>
+            <div class="featured-recipe-meta">
+                <span><i class="fa-regular fa-clock" aria-hidden="true"></i>${recipe.prepTime}</span>
+                <span><i class="fa-solid fa-signal" aria-hidden="true"></i>${recipe.difficulty}</span>
+                <span><i class="fa-solid fa-bullseye" aria-hidden="true"></i>${recipe.bestFor}</span>
+            </div>
+            <div class="featured-recipe-pairing">
+                <strong>Pairs well with ${pairingName}</strong>
+                <span>${priceLine}</span>
+            </div>
+            <p class="featured-recipe-why">${recipe.whyItWorks}</p>
+            <div class="featured-recipe-actions">
+                <button type="button" class="featured-recipe-btn featured-recipe-btn-secondary" data-open-recipe="${featuredName}">View recipe</button>
+                ${shopButton}
+            </div>
+        </div>
+    `;
+}
 
 // Google Apps Script endpoint (REPLACE WITH YOUR DEPLOYED WEB APP URL)
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdTBvtcJ7wJJa86a7v-R27jnwsFY1UeUg1bWCzOhOo0oSfD5P8E9yvBWs-kjHVizFL/exec";
@@ -537,6 +1118,7 @@ let cart = [];
 let currentCheckoutStep = 1; // Tracks current step in checkout modal
 let activeModalProduct = null; // For live quantity -> price helper in product modal
 let activeProductFilter = 'all';
+let activeRecipeFilter = 'all';
 let authState = {
     sessionToken: '',
     user: null,
@@ -573,6 +1155,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Render products from Google Sheets to gallery
         renderProductsToGallery();
         setupProductFilters();
+        renderRecipesToGallery();
+        setupRecipeFilters();
+        renderFeaturedRecipeOfWeek();
 
         initializeModal();
         initializeCart();
@@ -597,6 +1182,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         loadFallbackData();
         renderProductsToGallery();
         setupProductFilters();
+        renderRecipesToGallery();
+        setupRecipeFilters();
+        renderFeaturedRecipeOfWeek();
         console.log('Application loaded with fallback data');
     }
 });
@@ -2381,163 +2969,268 @@ function setupModalQuantityHelper(product) {
     updateModalQuantityHelper();
 }
 
+function setModalSectionHeadings(benefitsText = 'Health Benefits', usageText = 'How to Use') {
+    const benefitsHeading = document.getElementById('modal-benefits-heading');
+    const usageHeading = document.getElementById('modal-usage-heading');
+    if (benefitsHeading) benefitsHeading.textContent = benefitsText;
+    if (usageHeading) usageHeading.textContent = usageText;
+}
+
+function buildModalList(items, ordered = false, className = '') {
+    const list = document.createElement(ordered ? 'ol' : 'ul');
+    if (className) list.className = className;
+    items.forEach((itemText) => {
+        const item = document.createElement('li');
+        item.textContent = itemText;
+        list.appendChild(item);
+    });
+    return list;
+}
+
+function createRecipeUsageSection(title, listNode) {
+    const section = document.createElement('div');
+    section.className = 'recipe-modal-section';
+    const heading = document.createElement('h4');
+    heading.className = 'recipe-modal-section-title';
+    heading.textContent = title;
+    section.appendChild(heading);
+    section.appendChild(listNode);
+    return section;
+}
+
+function renderRecipeEnhancementsInModal(recipe) {
+    const descriptionEl = document.getElementById('modal-description');
+    if (!descriptionEl || !recipe) return null;
+
+    const shopMeta = getRecipeShopProduct(recipe);
+    const pairingNames = Array.isArray(recipe.pairsWith) ? recipe.pairsWith : [];
+
+    let extras = document.getElementById('modal-recipe-extras');
+    if (!extras) {
+        extras = document.createElement('div');
+        extras.id = 'modal-recipe-extras';
+        extras.className = 'modal-recipe-extras';
+        descriptionEl.insertAdjacentElement('afterend', extras);
+    }
+
+    extras.innerHTML = `
+        <div class="recipe-stat-grid">
+            <div class="recipe-stat-card"><span>Prep Time</span><strong>${recipe.prepTime}</strong></div>
+            <div class="recipe-stat-card"><span>Difficulty</span><strong>${recipe.difficulty}</strong></div>
+            <div class="recipe-stat-card"><span>Best For</span><strong>${recipe.bestFor}</strong></div>
+        </div>
+        <div class="recipe-pairing-card">
+            <div>
+                <span class="recipe-card-eyebrow">Pairs well with</span>
+                <strong>${pairingNames.join(' / ')}</strong>
+                <p>${shopMeta ? `${formatCurrency(shopMeta.product.price)} per 50g · Adds a ready-to-use pack to cart` : 'Weekly pairings update with product availability.'}</p>
+            </div>
+        </div>
+        <div class="recipe-story-grid">
+            <div class="recipe-story-card">
+                <h4>Why this works</h4>
+                <p>${recipe.whyItWorks}</p>
+            </div>
+            <div class="recipe-story-card">
+                <h4>Swap idea</h4>
+                <p>${recipe.swapIdea}</p>
+            </div>
+        </div>
+    `;
+
+    return shopMeta;
+}
+
+function openProductModal(productName) {
+    const modal = document.getElementById('product-modal');
+    const product = productData[productName];
+    if (!modal || !product) return;
+
+    resetProductModalEnhancements();
+    modal.classList.add('product-view');
+    modal.classList.remove('recipe-view');
+    setModalSectionHeadings('Health Benefits', 'How to Use');
+
+    const modalPrice = document.getElementById('modal-price');
+    modalPrice.classList.remove('recipe-mode');
+    modalPrice.style.display = '';
+    modalPrice.textContent = `${formatCurrency(product.price)} per 50g`;
+
+    document.getElementById('modal-image').src = product.image;
+    document.getElementById('modal-image').alt = productName;
+    document.getElementById('modal-title').textContent = productName;
+    document.getElementById('modal-description').textContent = product.description;
+
+    let additionalInfo = '';
+    if (product.storage || product.shelfLife) {
+        additionalInfo = '<div class="product-info-box">';
+        if (product.storage) {
+            additionalInfo += `<div class="info-item"><strong>Storage:</strong> ${product.storage}</div>`;
+        }
+        if (product.shelfLife) {
+            additionalInfo += `<div class="info-item"><strong>Shelf Life:</strong> ${product.shelfLife}</div>`;
+        }
+        additionalInfo += '</div>';
+    }
+
+    const descriptionEl = document.getElementById('modal-description');
+    descriptionEl.innerHTML = product.description + additionalInfo;
+    renderProductEnhancementsInModal(product);
+
+    const benefitsContainer = document.getElementById('modal-benefits');
+    benefitsContainer.innerHTML = '';
+    benefitsContainer.appendChild(buildModalList(product.benefits || []));
+
+    const usageContainer = document.getElementById('modal-usage');
+    usageContainer.innerHTML = '';
+    usageContainer.appendChild(buildModalList(product.usage || []));
+    renderProductReviewsInModal(product);
+    renderProductFaqInModal(product);
+
+    document.querySelector('#product-modal .quantity-input').value = 50;
+    setupModalQuantityHelper(product);
+
+    const addToCartBtn = document.getElementById('add-to-cart-modal');
+    const quantityInput = document.querySelector('#product-modal .quantity-input');
+    const quantityBtns = document.querySelectorAll('#product-modal .quantity-btn');
+    addToCartBtn.disabled = false;
+    addToCartBtn.textContent = '+ Add to Cart';
+    addToCartBtn.style.background = '';
+    addToCartBtn.style.cursor = 'pointer';
+    quantityInput.disabled = false;
+    quantityBtns.forEach((btn) => { btn.disabled = false; });
+
+    addToCartBtn.onclick = function() {
+        const quantity = parseInt(document.querySelector('#product-modal .quantity-input').value, 10);
+        addToCart(productName, quantity, product.price);
+        setModalVisibility(modal, false);
+    };
+
+    document.querySelector('#product-modal .quantity-selector').style.display = 'flex';
+    addToCartBtn.style.display = 'block';
+    setModalVisibility(modal, true);
+}
+
+function openRecipeModal(recipeName) {
+    const modal = document.getElementById('product-modal');
+    const recipe = recipeData[recipeName];
+    if (!modal || !recipe) return;
+
+    resetProductModalEnhancements();
+    modal.classList.remove('product-view');
+    modal.classList.add('recipe-view');
+    setModalSectionHeadings('Why You Will Love It', 'Ingredients and Steps');
+
+    document.getElementById('modal-image').src = recipe.image;
+    document.getElementById('modal-image').alt = recipeName;
+    document.getElementById('modal-title').textContent = recipeName;
+
+    const modalPrice = document.getElementById('modal-price');
+    modalPrice.classList.add('recipe-mode');
+    modalPrice.style.display = 'inline-flex';
+    modalPrice.textContent = recipe.badge;
+
+    document.getElementById('modal-description').textContent = recipe.description;
+    const shopMeta = renderRecipeEnhancementsInModal(recipe);
+
+    const benefitsContainer = document.getElementById('modal-benefits');
+    benefitsContainer.innerHTML = '';
+    benefitsContainer.appendChild(buildModalList(recipe.benefits || []));
+
+    const usageContainer = document.getElementById('modal-usage');
+    usageContainer.innerHTML = '';
+    usageContainer.appendChild(createRecipeUsageSection('Ingredients', buildModalList(recipe.ingredients || [])));
+    usageContainer.appendChild(createRecipeUsageSection('Steps', buildModalList(recipe.instructions || [], true, 'recipe-steps')));
+
+    const modalQty = document.querySelector('#product-modal .quantity-selector');
+    const modalCartBtn = document.getElementById('add-to-cart-modal');
+    if (modalQty) modalQty.style.display = 'none';
+    if (modalCartBtn) {
+        modalCartBtn.style.display = 'block';
+        if (shopMeta) {
+            modalCartBtn.disabled = false;
+            modalCartBtn.textContent = `Shop this recipe: ${shopMeta.name}`;
+            modalCartBtn.onclick = function() {
+                addToCart(shopMeta.name, 50, shopMeta.product.price);
+                setModalVisibility(modal, false);
+            };
+        } else {
+            modalCartBtn.disabled = true;
+            modalCartBtn.textContent = 'Pairing unavailable right now';
+            modalCartBtn.onclick = null;
+        }
+    }
+
+    setModalVisibility(modal, true);
+}
+
 function resetProductModalEnhancements() {
-    const extras = document.getElementById('modal-product-extras');
-    if (extras) extras.remove();
+    const productExtras = document.getElementById('modal-product-extras');
+    if (productExtras) productExtras.remove();
+    const recipeExtras = document.getElementById('modal-recipe-extras');
+    if (recipeExtras) recipeExtras.remove();
     const helper = document.getElementById('modal-quantity-helper');
     if (helper) helper.remove();
+    const modal = document.getElementById('product-modal');
+    const modalPrice = document.getElementById('modal-price');
+    if (modal) {
+        modal.classList.remove('product-view', 'recipe-view');
+    }
+    if (modalPrice) {
+        modalPrice.classList.remove('recipe-mode');
+        modalPrice.style.display = '';
+    }
+    setModalSectionHeadings('Health Benefits', 'How to Use');
     activeModalProduct = null;
 }
 
 function initializeModal() {
     const modal = document.getElementById('product-modal');
-    if (!modal) return;
+    if (!modal || initializeModal.initialized) return;
+    initializeModal.initialized = true;
     const closeBtn = modal.querySelector('.close-modal');
 
-    // Add click event to all product cards
-    document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Prevent modal from opening if quantity buttons or add to cart button are clicked
-            if (e.target.closest('.quantity-selector') || e.target.closest('.add-to-cart') || e.target.closest('.card-rating')) {
-                return;
-            }
-
-            // Recipes use a different modal flow and should never show cart controls.
-            if (this.classList.contains('recipe-art')) {
-                return;
-            }
-
-            const productName = this.querySelector('.gallery-title').textContent;
+    document.addEventListener('click', function(e) {
+        const shopBtn = e.target.closest('[data-shop-product]');
+        if (shopBtn) {
+            const productName = shopBtn.getAttribute('data-shop-product');
+            const quantity = parseInt(shopBtn.getAttribute('data-shop-quantity') || '50', 10);
             const product = productData[productName];
-
             if (product) {
-                resetProductModalEnhancements();
-                modal.classList.add('product-view');
-                document.getElementById('modal-image').src = product.image;
-                document.getElementById('modal-image').alt = productName;
-                document.getElementById('modal-title').textContent = productName;
-                document.getElementById('modal-price').textContent = `${formatCurrency(product.price)} per 50g`;
-                document.getElementById('modal-description').textContent = product.description;
-
-                // Add additional product information if available
-                let additionalInfo = '';
-                
-                if (product.storage || product.shelfLife) {
-                  additionalInfo = '<div class="product-info-box">';
-                  if (product.storage) {
-                    additionalInfo += `<div class="info-item"><strong>Storage:</strong> ${product.storage}</div>`;
-                  }
-                  if (product.shelfLife) {
-                    additionalInfo += `<div class="info-item"><strong>Shelf Life:</strong> ${product.shelfLife}</div>`;
-                  }
-                  additionalInfo += '</div>';
-                }
-                
-                const descriptionEl = document.getElementById('modal-description');
-                descriptionEl.innerHTML = product.description + additionalInfo;
-                renderProductEnhancementsInModal(product);
-
-                const benefitsList = document.getElementById('modal-benefits');
-                benefitsList.innerHTML = '';
-                product.benefits.forEach(benefit => {
-                    const li = document.createElement('li');
-                    li.textContent = benefit;
-                    benefitsList.appendChild(li);
-                });
-
-                const usageList = document.getElementById('modal-usage');
-                usageList.innerHTML = '<h3>Usage Tips</h3>'; // Clear previous content and add heading
-                const productUsageList = document.createElement('ul');
-                product.usage.forEach(use => {
-                    const li = document.createElement('li');
-                    li.textContent = use;
-                    productUsageList.appendChild(li);
-                });
-                usageList.appendChild(productUsageList);
-                renderProductReviewsInModal(product);
-                renderProductFaqInModal(product);
-
-                // Set initial quantity to 50g for modal add to cart
-                document.querySelector('#product-modal .quantity-input').value = 50;
-                setupModalQuantityHelper(product);
-                
-                // Ensure modal controls are always enabled
-                const addToCartBtn = document.getElementById('add-to-cart-modal');
-                const quantityInput = document.querySelector('#product-modal .quantity-input');
-                const quantityBtns = document.querySelectorAll('#product-modal .quantity-btn');
-                addToCartBtn.disabled = false;
-                addToCartBtn.textContent = '+ Add to Cart';
-                addToCartBtn.style.background = '';
-                addToCartBtn.style.cursor = 'pointer';
-                quantityInput.disabled = false;
-                quantityBtns.forEach((btn) => { btn.disabled = false; });
-
-                document.getElementById('add-to-cart-modal').onclick = function() {
-                    const quantity = parseInt(document.querySelector('#product-modal .quantity-input').value);
-                    addToCart(productName, quantity, product.price);
-                    setModalVisibility(modal, false);
-                };
-
-                document.querySelector('#product-modal .quantity-selector').style.display = 'flex';
-                document.getElementById('add-to-cart-modal').style.display = 'block';
-
-                setModalVisibility(modal, true);
+                addToCart(productName, quantity, product.price);
             }
-        });
+            return;
+        }
+
+        const featuredRecipeBtn = e.target.closest('[data-open-recipe]');
+        if (featuredRecipeBtn) {
+            openRecipeModal(featuredRecipeBtn.getAttribute('data-open-recipe'));
+            return;
+        }
+
+        const recipeCard = e.target.closest('#recipes-gallery .recipe-art');
+        if (recipeCard) {
+            openRecipeModal(recipeCard.getAttribute('data-recipe-name'));
+            return;
+        }
+
+        const productCard = e.target.closest('#products-gallery .card');
+        if (!productCard) return;
+        if (e.target.closest('.quantity-selector') || e.target.closest('.add-to-cart') || e.target.closest('.card-rating')) {
+            return;
+        }
+
+        const titleEl = productCard.querySelector('.gallery-title');
+        if (!titleEl) return;
+        openProductModal(titleEl.textContent.trim());
     });
 
-    // Add click event to all recipe cards
-    document.querySelectorAll('.recipe-art').forEach(recipeCard => {
-        recipeCard.addEventListener('click', function() {
-            const recipeName = this.querySelector('.gallery-title').textContent;
-            const recipe = recipeData[recipeName];
-
-            if (recipe) {
-                resetProductModalEnhancements();
-                modal.classList.remove('product-view');
-                document.getElementById('modal-image').src = recipe.image;
-                document.getElementById('modal-image').alt = recipeName;
-                document.getElementById('modal-title').textContent = recipeName;
-                document.getElementById('modal-price').textContent = ''; // Recipes don't have a price
-                document.getElementById('modal-description').textContent = recipe.description;
-
-                const benefitsList = document.getElementById('modal-benefits');
-                benefitsList.innerHTML = '<h3>Benefits</h3>'; // Clear previous content and add heading
-                const recipeBenefitsList = document.createElement('ul');
-                recipe.benefits.forEach(benefit => {
-                    const li = document.createElement('li');
-                    li.textContent = benefit;
-                    recipeBenefitsList.appendChild(li);
-                });
-                benefitsList.appendChild(recipeBenefitsList);
-
-                const usageList = document.getElementById('modal-usage');
-                usageList.innerHTML = '<h3>Ingredients</h3>';
-                const ingredientsList = document.createElement('ul');
-                recipe.ingredients.forEach(ingredient => {
-                    const li = document.createElement('li');
-                    li.textContent = ingredient;
-                    ingredientsList.appendChild(li);
-                });
-                usageList.appendChild(ingredientsList);
-
-                usageList.innerHTML += '<h3>Instructions</h3>';
-                const instructionsList = document.createElement('ol');
-                recipe.instructions.forEach(instruction => {
-                    const li = document.createElement('li');
-                    li.textContent = instruction;
-                    instructionsList.appendChild(li);
-                });
-                usageList.appendChild(instructionsList);
-
-                const modalQty = document.querySelector('#product-modal .quantity-selector');
-                const modalCartBtn = document.getElementById('add-to-cart-modal');
-                if (modalQty) modalQty.style.setProperty('display', 'none', 'important');
-                if (modalCartBtn) modalCartBtn.style.setProperty('display', 'none', 'important');
-
-                setModalVisibility(modal, true);
-            }
-        });
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const recipeCard = e.target.closest('#recipes-gallery .recipe-art');
+        if (!recipeCard) return;
+        e.preventDefault();
+        openRecipeModal(recipeCard.getAttribute('data-recipe-name'));
     });
 
     if (closeBtn) {
@@ -3327,6 +4020,8 @@ async function continueShoppingAfterOrder() {
     
     // Re-render products with latest data
     renderProductsToGallery();
+    renderRecipesToGallery();
+    renderFeaturedRecipeOfWeek();
     
     console.log('✓ Product list refreshed successfully');
     showCartNotification({
